@@ -1,0 +1,88 @@
+{
+  "tasks": [
+    {
+      "args": [
+        "compile",
+        "--fqbn",
+        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "--warnings",
+        "all",
+        "--library",
+        ".",
+        "${input:examplePath}"
+      ],
+      "command": "arduino-cli",
+      "group": {
+        "isDefault": true,
+        "kind": "build"
+      },
+      "label": "Arduino: Compile Example",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "process"
+    },
+    {
+      "args": [
+        "compile",
+        "--fqbn",
+        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "--warnings",
+        "all",
+        "--upload",
+        "--port",
+        "${input:microbitPort}",
+        "--library",
+        ".",
+        "${input:examplePath}"
+      ],
+      "command": "arduino-cli",
+      "label": "Arduino: Compile and Upload Example",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "process"
+    },
+    {
+      "args": [
+        "compile",
+        "--fqbn",
+        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "--build-path",
+        ".build",
+        "--only-compilation-database",
+        "--library",
+        ".",
+        "${input:examplePath}"
+      ],
+      "command": "arduino-cli",
+      "label": "Arduino: Refresh Compilation Database",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "type": "process"
+    }
+  ],
+  "inputs": [
+    {
+      "default": "examples/ReadWriteTime",
+      "description": "Example sketch directory",
+      "id": "examplePath",
+      "type": "promptString"
+    },
+    {
+      "default": "COM3",
+      "description": "BBC micro:bit V2 USB serial port",
+      "id": "microbitPort",
+      "type": "promptString"
+    }
+  ],
+  "version": "2.0.0"
+}
