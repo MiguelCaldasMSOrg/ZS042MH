@@ -64,6 +64,7 @@ class ZS042MH {
  private:
   static const uint8_t EEPROM_PAGE_SIZE = 32;
   static const uint8_t WIRE_DATA_CHUNK = 16;
+  static const uint8_t EEPROM_WRITE_TIMEOUT_MS = 20;
 
   TwoWire &_wire;
   uint8_t _rtcAddress;
@@ -78,6 +79,7 @@ class ZS042MH {
   bool rtcSetRegister(uint8_t reg, uint8_t value);
   bool rtcUpdateRegister(uint8_t reg, uint8_t clearMask, uint8_t setMask);
   bool eepromRangeValid(uint16_t address, uint16_t length) const;
+  bool eepromWaitReady();
 };
 
 #endif

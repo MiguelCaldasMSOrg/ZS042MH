@@ -27,7 +27,7 @@ Compilation does not verify physical wiring, clone-specific pull-ups, alarm sign
 - The Arduino library name is `ZS042MH`; `library.properties` and the primary header `src/ZS042MH.h` now match.
 - The directory is `C:\Projects\Arduino\ZS042MH` and the workspace file is `ZS042MH.code-workspace`; both manual renames are complete.
 - `README.md` references the renamed workspace file. The workspace file uses `"path": "."`, and VS Code tasks use `${workspaceFolder}`, so their contents did not require path changes.
-- This directory is a Git repository on `main`, with `origin` at `https://github.com/MiguelCaldasMSOrg/ZS042MH.git`.
+- This directory is a Git repository on `master`, with `origin` at `https://github.com/MiguelCaldasMSOrg/ZS042MH.git`.
 - The public repository is published at `https://github.com/MiguelCaldasMSOrg/ZS042MH`, matching the URL declared in `library.properties`.
 
 ### Implementation
@@ -44,6 +44,7 @@ Compilation does not verify physical wiring, clone-specific pull-ups, alarm sign
 - Arduino CLI version used earlier in setup: 1.5.1.
 - Primary board/core: Sandeep Mistry nRF5 0.8.0 with FQBN `sandeepmistry:nRF5:BBCmicrobitV2`.
 - All three examples compile successfully with warnings enabled using the command in the Validation section.
+- All three examples also compile with warnings enabled for Arduino Uno (`arduino:avr:uno`) and Nano ESP32 (`arduino:esp32:nano_nora`).
 - VS Code diagnostics reported no errors in the created workspace files.
 - `arduino-lint` 1.3.0 is installed at `C:\Program Files\Arduino CLI\arduino-lint.exe`.
 - Run strict lint from the library root as `arduino-lint --compliance strict`, without a trailing `.`. Passing `.` causes rule LS003 to treat the literal dot as the folder name.

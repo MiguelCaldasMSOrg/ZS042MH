@@ -20,6 +20,10 @@ const uint8_t CONTROL_A1IE = 0x01;
 const uint8_t STATUS_OSF = 0x80;
 const uint8_t STATUS_A2F = 0x02;
 const uint8_t STATUS_A1F = 0x01;
+
+bool isValidBcd(uint8_t value) {
+  return (value & 0x0F) <= 9 && (value >> 4) <= 9;
+}
 }
 
 ZS042MH::ZS042MH(TwoWire &wire, uint8_t rtcAddress, uint8_t eepromAddress, uint16_t eepromSize) : _wire(wire), _rtcAddress(rtcAddress), _eepromAddress(eepromAddress), _eepromSize(eepromSize) {
@@ -84,18 +88,40 @@ bool ZS042MH::getTime(ZS042MHDateTime &dateTime) {
   if (!rtcRead(REG_TIME, buffer, sizeof(buffer))) {
     return false;
   }
-  dateTime.second = bcdToDecimal(buffer[0] & 0x7F);
-  dateTime.minute = bcdToDecimal(buffer[1] & 0x7F);
-  if (buffer[2] & 0x40) {
-    uint8_t hour = bcdToDecimal(buffer[2] & 0x1F);
-    dateTime.hour = (buffer[2] & 0x20) ? (hour % 12) + 12 : hour % 12;
-  } else {
-    dateTime.hour = bcdToDecimal(buffer[2] & 0x3F);
+
+  if ((buffer[0] & 0x80) || (buffer[1] & 0x80) || (buffer[2] & 0x80) || (buffer[3] & 0xF8) || (buffer[4] & 0xC0) || (buffer[5] & 0xE0) || !isValidBcd(buffer[0]) || !isValidBcd(buffer[1]) || !isValidBcd(buffer[4]) || !isValidBcd(buffer[5]) || !isValidBcd(buffer[6])) {
+    return false;
   }
-  dateTime.dayOfWeek = buffer[3] & 0x07;
-  dateTime.day = bcdToDecimal(buffer[4] & 0x3F);
-  dateTime.month = bcdToDecimal(buffer[5] & 0x1F);
-  dateTime.year = 2000 + bcdToDecimal(buffer[6]);
+
+  ZS042MHDateTime decoded;
+  decoded.second = bcdToDecimal(buffer[0]);
+  decoded.minute = bcdToDecimal(buffer[1]);
+  if (buffer[2] & 0x40) {
+    uint8_t rawHour = buffer[2] & 0x1F;
+    if (!isValidBcd(rawHour)) {
+      return false;
+    }
+    uint8_t hour = bcdToDecimal(rawHour);
+    if (hour < 1 || hour > 12) {
+      return false;
+    }
+    decoded.hour = (buffer[2] & 0x20) ? (hour % 12) + 12 : hour % 12;
+  } else {
+    uint8_t rawHour = buffer[2] & 0x3F;
+    if (!isValidBcd(rawHour)) {
+      return false;
+    }
+    decoded.hour = bcdToDecimal(rawHour);
+  }
+  decoded.dayOfWeek = buffer[3];
+  decoded.day = bcdToDecimal(buffer[4]);
+  decoded.month = bcdToDecimal(buffer[5]);
+  decoded.year = 2000 + bcdToDecimal(buffer[6]);
+  if (decoded.second > 59 || decoded.minute > 59 || decoded.hour > 23 || decoded.dayOfWeek < 1 || !isValidDate(decoded.year, decoded.month, decoded.day)) {
+    return false;
+  }
+
+  dateTime = decoded;
   return true;
 }
 
@@ -117,10 +143,10 @@ bool ZS042MH::oscillatorStopped(bool &stopped) {
 }
 
 bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
-  if (mode > ZS042MH_A1_MATCH_DATE_TIME || second > 59 || (mode >= ZS042MH_A1_MATCH_TIME && (hour > 23 || minute > 59)) || (mode == ZS042MH_A1_MATCH_DATE_TIME && (day < 1 || day > 31))) {
+  if (mode > ZS042MH_A1_MATCH_DATE_TIME) {
     return false;
   }
-  uint8_t buffer[4] = {decimalToBcd(second), decimalToBcd(minute), decimalToBcd(hour), decimalToBcd(day)};
+  uint8_t buffer[4] = {0, 0, 0, 0};
   switch (mode) {
     case ZS042MH_A1_EVERY_SECOND:
       buffer[0] |= 0x80;
@@ -129,14 +155,31 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[3] |= 0x80;
       break;
     case ZS042MH_A1_MATCH_SECOND:
+      if (second > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(second);
       buffer[1] |= 0x80;
       buffer[2] |= 0x80;
       buffer[3] |= 0x80;
       break;
     case ZS042MH_A1_MATCH_TIME:
+      if (hour > 23 || minute > 59 || second > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(second);
+      buffer[1] = decimalToBcd(minute);
+      buffer[2] = decimalToBcd(hour);
       buffer[3] |= 0x80;
       break;
     case ZS042MH_A1_MATCH_DATE_TIME:
+      if (day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(second);
+      buffer[1] = decimalToBcd(minute);
+      buffer[2] = decimalToBcd(hour);
+      buffer[3] = decimalToBcd(day);
       break;
     default:
       return false;
@@ -151,10 +194,10 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
 }
 
 bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute) {
-  if (mode > ZS042MH_A2_MATCH_DATE_TIME || (mode >= ZS042MH_A2_MATCH_TIME && (hour > 23 || minute > 59)) || (mode == ZS042MH_A2_MATCH_DATE_TIME && (day < 1 || day > 31))) {
+  if (mode > ZS042MH_A2_MATCH_DATE_TIME) {
     return false;
   }
-  uint8_t buffer[3] = {decimalToBcd(minute), decimalToBcd(hour), decimalToBcd(day)};
+  uint8_t buffer[3] = {0, 0, 0};
   switch (mode) {
     case ZS042MH_A2_EVERY_MINUTE:
       buffer[0] |= 0x80;
@@ -162,9 +205,20 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[2] |= 0x80;
       break;
     case ZS042MH_A2_MATCH_TIME:
+      if (hour > 23 || minute > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(minute);
+      buffer[1] = decimalToBcd(hour);
       buffer[2] |= 0x80;
       break;
     case ZS042MH_A2_MATCH_DATE_TIME:
+      if (day < 1 || day > 31 || hour > 23 || minute > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(minute);
+      buffer[1] = decimalToBcd(hour);
+      buffer[2] = decimalToBcd(day);
       break;
     default:
       return false;
@@ -258,7 +312,9 @@ bool ZS042MH::eepromWrite(uint16_t address, const uint8_t *data, uint16_t length
     if (_wire.endTransmission() != 0) {
       return false;
     }
-    delay(6);
+    if (!eepromWaitReady()) {
+      return false;
+    }
     address += chunk;
     data += chunk;
     length -= chunk;
@@ -355,4 +411,15 @@ bool ZS042MH::rtcUpdateRegister(uint8_t reg, uint8_t clearMask, uint8_t setMask)
 
 bool ZS042MH::eepromRangeValid(uint16_t address, uint16_t length) const {
   return (uint32_t)address + length <= _eepromSize;
+}
+
+bool ZS042MH::eepromWaitReady() {
+  uint32_t startedAt = millis();
+  do {
+    _wire.beginTransmission(_eepromAddress);
+    if (_wire.endTransmission() == 0) {
+      return true;
+    }
+  } while ((uint32_t)(millis() - startedAt) < EEPROM_WRITE_TIMEOUT_MS);
+  return false;
 }

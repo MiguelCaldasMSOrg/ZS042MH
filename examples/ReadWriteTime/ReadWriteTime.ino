@@ -18,6 +18,15 @@ void setup() {
     return;
   }
 
+  bool stopped;
+  if (!module.oscillatorStopped(stopped)) {
+    Serial.println("Could not read oscillator status");
+    return;
+  }
+  if (stopped) {
+    Serial.println("RTC time may be invalid; set the clock before relying on it");
+  }
+
   // Uncomment once to set the RTC, then comment it again and upload.
   // module.setTime(2026, 1, 31, 12, 0, 0);
 }

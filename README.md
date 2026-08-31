@@ -60,13 +60,15 @@ The examples are available under **File > Examples > ZS042MH**:
 |---|---|
 | `rtcConnected()` | Probe the configured DS3231 address. |
 | `setTime(year, month, day, hour, minute, second)` | Validate and write a date/time in 24-hour mode, then clear the oscillator-stop flag. |
-| `getTime(dateTime)` | Read the clock into `ZS042MHDateTime`; supports DS3231 12-hour data as a fallback. |
+| `getTime(dateTime)` | Validate and read the clock into `ZS042MHDateTime`; leave it unchanged and return `false` for malformed register data. |
 | `getTemperature()` | Return degrees Celsius at 0.25-degree resolution, or `NAN` on I2C failure. |
 | `oscillatorStopped(stopped)` | Report the DS3231 oscillator-stop flag without clearing it. |
 | `isValidDate(...)` | Validate dates from 2000 through 2099. |
 | `calculateDayOfWeek(...)` | Return 1 for Sunday through 7 for Saturday, or 0 for an invalid date. |
 
-`ZS042MHDateTime` contains `year`, `month`, `day`, `dayOfWeek`, `hour`, `minute`, and `second`. A successful read confirms I2C transport, not that the stored clock is trustworthy; inspect `oscillatorStopped()` when that distinction matters.
+`ZS042MHDateTime` contains `year`, `month`, `day`, `dayOfWeek`, `hour`, `minute`, and `second`. `setTime()` always writes 24-hour data. `getTime()` returns a 24-hour value and can decode a clock previously configured for 12-hour mode. Years are limited to 2000 through 2099; a set DS3231 century bit is rejected.
+
+A successful read confirms valid register encoding and I2C transport, not that the stored clock is trustworthy. Inspect `oscillatorStopped()` before relying on the value after first power-up or backup-power loss.
 
 ### Alarms and square wave
 
@@ -90,7 +92,9 @@ Alarm modes are:
 | `ZS042MH_A2_MATCH_TIME` | Hour and minute each day |
 | `ZS042MH_A2_MATCH_DATE_TIME` | Date, hour, and minute each month |
 
-The DS3231 `INT/SQW` pin is active-low and open-drain. It remains low while an enabled alarm flag is set. Date alarms repeat monthly, and Alarm 2 has one-minute resolution. Switching to a nonzero square wave repurposes the same pin, so alarms cannot signal through it in that mode.
+These are the match patterns exposed by this library; the DS3231's intermediate minute-and-second patterns are not part of the API. Parameters ignored by the selected mode do not affect matching.
+
+The DS3231 `INT/SQW` pin is active-low and open-drain. It remains low while an enabled alarm flag is set. Date alarms repeat monthly, and Alarm 2 has one-minute resolution. Switching to a nonzero square wave repurposes the same pin, so alarms cannot signal through it in that mode. Existing alarm-enable bits remain set when switching modes, but they can drive the pin only when interrupt mode is selected.
 
 ### EEPROM
 
@@ -99,11 +103,11 @@ The DS3231 `INT/SQW` pin is active-low and open-drain. It remains low while an e
 | `eepromConnected()` | Probe the configured EEPROM address. |
 | `eepromSize()` | Return the configured EEPROM capacity. |
 | `eepromWriteByte(address, value)` | Bounds-check and write one byte. |
-| `eepromWrite(address, data, length)` | Bounds-check, split at 32-byte pages and Wire-safe chunks, and wait for each write cycle. |
+| `eepromWrite(address, data, length)` | Bounds-check, split at 32-byte pages and Wire-safe chunks, and ACK-poll each write for up to 20 ms. |
 | `eepromRead(address, data, length)` | Bounds-check and read in Wire-safe chunks. |
 | `eepromFill(address, length, value)` | Fill a checked address range. |
 
-EEPROM calls are blocking. A multi-chunk operation can fail after earlier chunks have completed; there is no rollback or automatic read-back verification. Avoid unnecessary writes because EEPROM has finite endurance.
+EEPROM calls are blocking. A multi-chunk operation can fail after earlier chunks have completed; there is no rollback or automatic read-back verification. Zero-length reads and writes succeed when the address is within or exactly at the configured capacity. Avoid unnecessary writes because EEPROM has finite endurance.
 
 All Boolean device methods return `false` for invalid arguments or I2C failures. Alarm setup and multi-chunk EEPROM writes can be partially applied if a later I2C operation fails.
 
@@ -116,6 +120,13 @@ arduino-cli config add board_manager.additional_urls https://sandeepmistry.githu
 arduino-cli core update-index
 arduino-cli core install sandeepmistry:nRF5
 arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobitV2 --warnings all --library . examples/ReadWriteTime
+```
+
+Portability is also checked on the installed Arduino Uno and Nano ESP32 cores:
+
+```powershell
+arduino-cli compile --fqbn arduino:avr:uno --warnings all --library . examples/ReadWriteTime
+arduino-cli compile --fqbn arduino:esp32:nano_nora --warnings all --library . examples/ReadWriteTime
 ```
 
 Open `ZS042MH.code-workspace` in VS Code. `Ctrl+Shift+B` compiles a prompted example path. The other tasks upload an example or refresh `.build/compile_commands.json`. The upload task asks for the micro:bit COM port; the Sandeep Mistry recipe identifies the board from that port and flashes through its CMSIS-DAP interface.
