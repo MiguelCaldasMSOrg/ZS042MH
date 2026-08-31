@@ -23,6 +23,10 @@ void setup() {
     return;
   }
 
+  // Other schedules include minute/second, daily time, monthly date, and weekly weekday matches.
+  // module.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 15, 30);
+  // module.setAlarm2(ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 1, 9, 0);
+
   attachInterrupt(digitalPinToInterrupt(ALARM_PIN), onAlarm, FALLING);
   alarmPending = digitalRead(ALARM_PIN) == LOW;
 }

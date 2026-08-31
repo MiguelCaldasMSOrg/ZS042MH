@@ -143,7 +143,7 @@ bool ZS042MH::oscillatorStopped(bool &stopped) {
 }
 
 bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
-  if (mode > ZS042MH_A1_MATCH_DATE_TIME) {
+  if (mode > ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND) {
     return false;
   }
   uint8_t buffer[4] = {0, 0, 0, 0};
@@ -163,7 +163,16 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[2] |= 0x80;
       buffer[3] |= 0x80;
       break;
-    case ZS042MH_A1_MATCH_TIME:
+    case ZS042MH_A1_MATCH_MINUTE_SECOND:
+      if (minute > 59 || second > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(second);
+      buffer[1] = decimalToBcd(minute);
+      buffer[2] |= 0x80;
+      buffer[3] |= 0x80;
+      break;
+    case ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND:
       if (hour > 23 || minute > 59 || second > 59) {
         return false;
       }
@@ -172,7 +181,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[2] = decimalToBcd(hour);
       buffer[3] |= 0x80;
       break;
-    case ZS042MH_A1_MATCH_DATE_TIME:
+    case ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND:
       if (day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
         return false;
       }
@@ -180,6 +189,15 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[1] = decimalToBcd(minute);
       buffer[2] = decimalToBcd(hour);
       buffer[3] = decimalToBcd(day);
+      break;
+    case ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND:
+      if (day < 1 || day > 7 || hour > 23 || minute > 59 || second > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(second);
+      buffer[1] = decimalToBcd(minute);
+      buffer[2] = decimalToBcd(hour);
+      buffer[3] = decimalToBcd(day) | 0x40;
       break;
     default:
       return false;
@@ -194,7 +212,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
 }
 
 bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute) {
-  if (mode > ZS042MH_A2_MATCH_DATE_TIME) {
+  if (mode > ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE) {
     return false;
   }
   uint8_t buffer[3] = {0, 0, 0};
@@ -204,7 +222,15 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[1] |= 0x80;
       buffer[2] |= 0x80;
       break;
-    case ZS042MH_A2_MATCH_TIME:
+    case ZS042MH_A2_MATCH_MINUTE:
+      if (minute > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(minute);
+      buffer[1] |= 0x80;
+      buffer[2] |= 0x80;
+      break;
+    case ZS042MH_A2_MATCH_HOUR_MINUTE:
       if (hour > 23 || minute > 59) {
         return false;
       }
@@ -212,13 +238,21 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[1] = decimalToBcd(hour);
       buffer[2] |= 0x80;
       break;
-    case ZS042MH_A2_MATCH_DATE_TIME:
+    case ZS042MH_A2_MATCH_DATE_HOUR_MINUTE:
       if (day < 1 || day > 31 || hour > 23 || minute > 59) {
         return false;
       }
       buffer[0] = decimalToBcd(minute);
       buffer[1] = decimalToBcd(hour);
       buffer[2] = decimalToBcd(day);
+      break;
+    case ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE:
+      if (day < 1 || day > 7 || hour > 23 || minute > 59) {
+        return false;
+      }
+      buffer[0] = decimalToBcd(minute);
+      buffer[1] = decimalToBcd(hour);
+      buffer[2] = decimalToBcd(day) | 0x40;
       break;
     default:
       return false;

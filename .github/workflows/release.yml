@@ -1,0 +1,104 @@
+name: Release Arduino library
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate and release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          library_version="$(sed -n 's/^version=//p' library.properties | tr -d '\r')"
+          if [[ ! "$library_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "library.properties version is not semantic: $library_version" >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" != "v$library_version" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match library.properties version $library_version" >&2
+            exit 1
+          fi
+          echo "LIBRARY_VERSION=$library_version" >> "$GITHUB_ENV"
+
+      - name: Run strict Arduino lint
+        uses: arduino/arduino-lint-action@v3
+        with:
+          compliance: strict
+          library-manager: "false"
+          project-type: library
+
+      - name: Test alarm register encoding
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++11 -Wall -Wextra -Werror -I extras/tests/host -I src src/ZS042MH.cpp extras/tests/host/alarm_modes.cpp -o "$RUNNER_TEMP/alarm_modes_test"
+          "$RUNNER_TEMP/alarm_modes_test"
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.x"
+
+      - name: Install primary board core
+        shell: bash
+        run: |
+          set -euo pipefail
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://sandeepmistry.github.io/arduino-nRF5/package_nRF5_boards_index.json
+          arduino-cli core update-index
+          arduino-cli core install sandeepmistry:nRF5
+
+      - name: Compile all examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          for sketch in examples/*; do
+            if [[ -d "$sketch" ]]; then
+              arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobitV2 --warnings all --library . "$sketch"
+            fi
+          done
+
+      - name: Build Arduino IDE package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="dist/ZS042MH"
+          mkdir -p "$package_root"
+          cp library.properties keywords.txt LICENSE README.md "$package_root/"
+          cp -R src examples "$package_root/"
+          (
+            cd dist
+            zip -r "ZS042MH-$LIBRARY_VERSION.zip" ZS042MH
+            unzip -t "ZS042MH-$LIBRARY_VERSION.zip"
+            sha256sum "ZS042MH-$LIBRARY_VERSION.zip" > "ZS042MH-$LIBRARY_VERSION.zip.sha256"
+          )
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="dist/ZS042MH-$LIBRARY_VERSION.zip"
+          checksum="$archive.sha256"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$archive" "$checksum" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$archive" "$checksum" --verify-tag --generate-notes --title "ZS042MH $LIBRARY_VERSION"
+          fi
