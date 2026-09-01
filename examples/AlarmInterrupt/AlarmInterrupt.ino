@@ -22,6 +22,10 @@ void setup() {
     Serial.println("Could not configure Alarm 1");
     return;
   }
+  if (!zs042mh.setAlarmInterruptMode()) {
+    Serial.println("Could not enable alarm interrupt output");
+    return;
+  }
 
   // Other schedules include minute/second, daily time, monthly date, and weekly weekday matches.
   // zs042mh.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 15, 30);

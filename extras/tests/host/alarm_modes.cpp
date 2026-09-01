@@ -35,7 +35,7 @@ void expectAlarm1(ZS042MH &zs042mh, ZS042MHAlarm1Mode mode, uint8_t day, uint8_t
   resetWire();
   assert(zs042mh.setAlarm1(mode, day, hour, minute, second));
   expectFirstTransmission(expected);
-  assert(Wire.registers[0x0E] == 0xA5);
+  assert(Wire.registers[0x0E] == 0xA1);
   assert(Wire.registers[0x0F] == 0x8A);
 }
 
@@ -43,7 +43,7 @@ void expectAlarm2(ZS042MH &zs042mh, ZS042MHAlarm2Mode mode, uint8_t day, uint8_t
   resetWire();
   assert(zs042mh.setAlarm2(mode, day, hour, minute));
   expectFirstTransmission(expected);
-  assert(Wire.registers[0x0E] == 0xA6);
+  assert(Wire.registers[0x0E] == 0xA2);
   assert(Wire.registers[0x0F] == 0x89);
 }
 
@@ -72,6 +72,13 @@ int main() {
   expectAlarm2(zs042mh, ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 1, 14, 23, {0x0B, 0x23, 0x14, 0x41});
 
   resetWire();
+  Wire.registers[0x0E] = 0xA4;
+  assert(zs042mh.setAlarm1(ZS042MH_A1_EVERY_SECOND, 0, 0, 0, 0));
+  assert(Wire.registers[0x0E] == 0xA5);
+  assert(zs042mh.setAlarm2(ZS042MH_A2_EVERY_MINUTE, 0, 0, 0));
+  assert(Wire.registers[0x0E] == 0xA7);
+
+  resetWire();
   assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_SECOND, 0, 0, 0, 60));
   assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 60, 0));
   assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND, 0, 24, 0, 0));
@@ -97,6 +104,7 @@ int main() {
   const uint8_t expectedRateBits[] = {0x00, 0x08, 0x10, 0x18};
   for (size_t index = 0; index < sizeof(squareWaveRates) / sizeof(squareWaveRates[0]); index++) {
     resetWire();
+    Wire.registers[0x0E] |= 0x04;
     assert(zs042mh.setSquareWave(squareWaveRates[index]));
     assert(Wire.registers[0x0E] == (uint8_t)(0xA0 | expectedRateBits[index]));
   }

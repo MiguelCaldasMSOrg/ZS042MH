@@ -206,7 +206,7 @@ bool setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day,
 - `minute`: `0` through `59` when matched; ignored by modes that do not match the minute.
 - `second`: `0` through `59` when matched; ignored by `ZS042MH_A1_EVERY_SECOND`.
 
-Writes the four Alarm 1 registers, selects interrupt mode (`INTCN`), enables Alarm 1 interrupts, and clears the old Alarm 1 flag. Alarm 2 enable state and unrelated control/status bits are preserved. Returns `false` for an unknown mode, an invalid parameter used by that mode, or any I2C failure. Ignored parameters are not validated. Because setup uses multiple transfers, `false` can be returned after alarm registers or control bits have changed.
+Writes the four Alarm 1 registers, enables Alarm 1 (`A1IE`), and clears the old Alarm 1 flag. It does not change the `INT/SQW` output mode or square-wave rate, so the schedule can be configured while the pin continues to output a square wave. Call `setAlarmInterruptMode()` separately when enabled alarms should drive `INT/SQW`. Alarm 2 enable state and unrelated control/status bits are preserved. Returns `false` for an unknown mode, an invalid parameter used by that mode, or any I2C failure. Ignored parameters are not validated. Because setup uses multiple transfers, `false` can be returned after alarm registers or control bits have changed.
 
 ### `setAlarm2()`
 
@@ -220,7 +220,7 @@ bool setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day,
 - `hour`: `0` through `23` when matched; ignored by modes that do not match the hour.
 - `minute`: `0` through `59` when matched; ignored by `ZS042MH_A2_EVERY_MINUTE`.
 
-Writes the three Alarm 2 registers, selects interrupt mode (`INTCN`), enables Alarm 2 interrupts, and clears the old Alarm 2 flag. Alarm 1 enable state and unrelated bits are preserved. Return and partial-application behavior match `setAlarm1()`.
+Writes the three Alarm 2 registers, enables Alarm 2 (`A2IE`), and clears the old Alarm 2 flag. It does not change the `INT/SQW` output mode or square-wave rate. Call `setAlarmInterruptMode()` separately when enabled alarms should drive `INT/SQW`. Alarm 1 enable state and unrelated bits are preserved. Return and partial-application behavior match `setAlarm1()`.
 
 ### `disableAlarm()`
 
@@ -252,7 +252,7 @@ Flags can be polled even without an interrupt wire and while `INT/SQW` is config
 bool setAlarmInterruptMode();
 ```
 
-Configures `INT/SQW` for alarm interrupts. Existing alarm-enable, square-wave rate, and unrelated control bits are preserved. Returns `false` for an I2C failure.
+Configures `INT/SQW` for alarm interrupts. It does not configure an alarm schedule or enable either alarm. Existing alarm-enable, square-wave rate, and unrelated control bits are preserved. Returns `false` for an I2C failure.
 
 ### `setSquareWave()`
 
@@ -264,7 +264,7 @@ bool setSquareWave(uint16_t rate);
 
 Configures `INT/SQW` as a square-wave output at the requested frequency. Existing alarm-enable and unrelated control bits are preserved. Returns `false` without performing I2C for an unsupported rate, including `0`, or returns `false` for an I2C failure.
 
-The pin is open-drain and needs a suitable pull-up. Alarm flags continue to latch in square-wave mode, but alarms cannot drive the pin until interrupt mode is restored with `setAlarmInterruptMode()` or an alarm is configured with `setAlarm1()` or `setAlarm2()`.
+The pin is open-drain and needs a suitable pull-up. Alarm flags continue to latch in square-wave mode, but alarms cannot drive the pin until interrupt mode is restored with `setAlarmInterruptMode()`.
 
 ## EEPROM
 

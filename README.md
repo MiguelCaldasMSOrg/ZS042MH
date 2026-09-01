@@ -48,7 +48,7 @@ The full constructor selects the I2C bus, RTC address, EEPROM address, and EEPRO
 ZS042MH zs042mh(Wire1, 0x68, 0x50, 4096);
 ```
 
-The no-parameter constructor uses `Wire`, the Arduino core's global `TwoWire` object for the board's default I2C bus, with the default device addresses and EEPROM capacity. The full constructor accepts any board-provided `TwoWire` instance by reference; that bus object must remain alive for the lifetime of `zs042mh`. Calling `zs042mh.begin()` calls `begin()` on the selected bus.
+The no-parameter constructor uses the board's default `Wire` bus, device addresses, and EEPROM capacity.
 
 See [Construction and bus setup](API.md#construction-and-bus-setup) for alternate constructors. Pin selection and other board-specific I2C setup vary by Arduino core; when a core requires custom pins or settings, configure the bus as required by that core instead of relying on the library's parameterless `begin()` call.
 
@@ -69,49 +69,31 @@ See [API reference](API.md) for complete signatures, parameters, side effects, r
 | Method | Behavior |
 |---|---|
 | `rtcConnected()` | Probe the configured DS3231 address. |
-| `setTime(year, month, day, hour, minute, second)` | Validate and write a date/time in 24-hour mode, then clear the oscillator-stop flag. |
-| `getTime(dateTime)` | Validate and read the clock into `ZS042MHDateTime`; leave it unchanged and return `false` for malformed register data. |
+| `setTime(year, month, day, hour, minute, second)` | Write a validated date and time. |
+| `getTime(dateTime)` | Read a validated date and time into `ZS042MHDateTime`. |
 | `getTemperature()` | Return degrees Celsius at 0.25-degree resolution, or `NAN` on I2C failure. |
 | `oscillatorStopped(stopped)` | Report the DS3231 oscillator-stop flag without clearing it. |
 | `isValidDate(...)` | Validate dates from 2000 through 2099. |
 | `calculateDayOfWeek(...)` | Return 1 for Sunday through 7 for Saturday, or 0 for an invalid date. |
 
-`ZS042MHDateTime` contains `year`, `month`, `day`, `dayOfWeek`, `hour`, `minute`, and `second`. `setTime()` always writes 24-hour data. `getTime()` returns a 24-hour value and can decode a clock previously configured for 12-hour mode. Years are limited to 2000 through 2099; a set DS3231 century bit is rejected.
-
-A successful read confirms valid register encoding and I2C transport, not that the stored clock is trustworthy. Inspect `oscillatorStopped()` before relying on the value after first power-up or backup-power loss.
+Use `oscillatorStopped()` to determine whether time may have been lost after first power-up or backup-power loss.
 
 ### Alarms and square wave
 
 | Method | Behavior |
 |---|---|
-| `setAlarm1(mode, day, hour, minute, second)` | Configure any Alarm 1 match pattern, enable interrupt mode, and clear its old flag. |
-| `setAlarm2(mode, day, hour, minute)` | Configure any Alarm 2 match pattern, enable interrupt mode, and clear its old flag. |
+| `setAlarm1(mode, day, hour, minute, second)` | Configure and enable an Alarm 1 schedule. |
+| `setAlarm2(mode, day, hour, minute)` | Configure and enable an Alarm 2 schedule. |
 | `disableAlarm(1 or 2)` | Disable the selected alarm and clear its flag. |
 | `checkAndClearAlarms(fired)` | Return and clear asserted flags; test `ZS042MH::ALARM_1` and `ZS042MH::ALARM_2`. |
-| `setAlarmInterruptMode()` | Configure `INT/SQW` for alarm interrupts without changing alarm-enable bits. |
-| `setSquareWave(rate)` | Output `1`, `1024`, `4096`, or `8192` Hz; unsupported rates fail without performing I2C. |
+| `setAlarmInterruptMode()` | Route enabled alarms to `INT/SQW`. |
+| `setSquareWave(rate)` | Output `1`, `1024`, `4096`, or `8192` Hz on `INT/SQW`. |
 
-Alarm modes are:
-
-| Mode | Match behavior | Arguments used |
-|---|---|---|
-| `ZS042MH_A1_EVERY_SECOND` | Every second | None |
-| `ZS042MH_A1_MATCH_SECOND` | Second each minute | `second` |
-| `ZS042MH_A1_MATCH_MINUTE_SECOND` | Minute and second each hour | `minute`, `second` |
-| `ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND` | Hour, minute, and second each day | `hour`, `minute`, `second` |
-| `ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND` | Date, hour, minute, and second each month | `day`, `hour`, `minute`, `second` |
-| `ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND` | Weekday, hour, minute, and second each week | `day`, `hour`, `minute`, `second` |
-| `ZS042MH_A2_EVERY_MINUTE` | Every minute at second `00` | None |
-| `ZS042MH_A2_MATCH_MINUTE` | Minute each hour | `minute` |
-| `ZS042MH_A2_MATCH_HOUR_MINUTE` | Hour and minute each day | `hour`, `minute` |
-| `ZS042MH_A2_MATCH_DATE_HOUR_MINUTE` | Date, hour, and minute each month | `day`, `hour`, `minute` |
-| `ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE` | Weekday, hour, and minute each week | `day`, `hour`, `minute` |
-
-All DS3231 alarm match patterns are exposed. For weekday modes, `day` uses the same numbering as `ZS042MHDateTime::dayOfWeek`: Sunday is `1` and Saturday is `7`. For date modes, `day` is `1` through `31`. Parameters not listed for the selected mode are ignored and are not validated.
+All DS3231 alarm match patterns are exposed, including date and weekday schedules. See the [API reference](API.md#alarm-modes) for mode and argument details.
 
 The DS3231 `INT/SQW` pin is active-low and open-drain. It remains low while an enabled alarm flag is set. Date alarms repeat monthly, and Alarm 2 has one-minute resolution. Alarm flags are set on a match even when the pin is not connected to an interrupt input or is providing a square wave, so `checkAndClearAlarms()` can be polled in either case.
 
-Switching to a square wave repurposes `INT/SQW`, so alarms cannot signal through the pin in that mode. Existing alarm-enable bits remain set, but they can drive the pin only after `setAlarmInterruptMode()`, `setAlarm1()`, or `setAlarm2()` selects interrupt mode. Square-wave clock rates are `1`, `1024`, `4096`, and `8192` Hz. The output is open-drain and requires a suitable pull-up; verify the module's onboard pull-up voltage before connecting it to another device.
+The shared `INT/SQW` pin provides either alarm signaling or square-wave output. It is open-drain and requires a suitable pull-up; verify the module's onboard pull-up voltage before connecting it to another device.
 
 ### EEPROM
 
@@ -119,14 +101,12 @@ Switching to a square wave repurposes `INT/SQW`, so alarms cannot signal through
 |---|---|
 | `eepromConnected()` | Probe the configured EEPROM address. |
 | `eepromSize()` | Return the configured EEPROM capacity. |
-| `eepromWriteByte(address, value)` | Bounds-check and write one byte. |
-| `eepromWrite(address, data, length)` | Bounds-check, split at 32-byte pages and Wire-safe chunks, and ACK-poll each write for up to 20 ms. |
-| `eepromRead(address, data, length)` | Bounds-check and read in Wire-safe chunks. |
+| `eepromWriteByte(address, value)` | Write one byte within the configured capacity. |
+| `eepromWrite(address, data, length)` | Write a buffer within the configured capacity. |
+| `eepromRead(address, data, length)` | Read a buffer within the configured capacity. |
 | `eepromFill(address, length, value)` | Fill a checked address range. |
 
-EEPROM calls are blocking. A multi-chunk operation can fail after earlier chunks have completed; there is no rollback or automatic read-back verification. Zero-length reads and writes succeed when the address is within or exactly at the configured capacity. Avoid unnecessary writes because EEPROM has finite endurance.
-
-All Boolean device methods return `false` for invalid arguments or I2C failures. Alarm setup and multi-chunk EEPROM writes can be partially applied if a later I2C operation fails.
+EEPROM has finite write endurance; avoid unnecessary writes. See the [API reference](API.md#eeprom) for bounds, blocking, and partial-operation behavior.
 
 ## Development and validation
 
@@ -146,7 +126,7 @@ arduino-cli compile --fqbn arduino:avr:uno --warnings all --library . examples/R
 arduino-cli compile --fqbn arduino:esp32:nano_nora --warnings all --library . examples/ReadWriteTime
 ```
 
-The host test in `extras/tests/host` uses a fake `TwoWire` bus to verify the exact register bytes, validation paths, and preserved control/status bits for all alarm patterns. The release workflow compiles and runs it with warnings treated as errors.
+The host test in `extras/tests/host` verifies alarm register behavior. The release workflow compiles and runs it with warnings treated as errors.
 
 Open `ZS042MH.code-workspace` in VS Code. `Ctrl+Shift+B` compiles a prompted example path. The other tasks upload an example or refresh `.build/compile_commands.json`. The upload task asks for the micro:bit COM port; the Sandeep Mistry recipe identifies the board from that port and flashes through its CMSIS-DAP interface.
 

@@ -208,7 +208,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
   if (!rtcWrite(REG_ALARM_1, buffer, sizeof(buffer))) {
     return false;
   }
-  if (!rtcUpdateRegister(REG_CONTROL, 0, CONTROL_INTCN | CONTROL_A1IE)) {
+  if (!rtcUpdateRegister(REG_CONTROL, 0, CONTROL_A1IE)) {
     return false;
   }
   return rtcUpdateRegister(REG_STATUS, STATUS_A1F, 0);
@@ -263,7 +263,7 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
   if (!rtcWrite(REG_ALARM_2, buffer, sizeof(buffer))) {
     return false;
   }
-  if (!rtcUpdateRegister(REG_CONTROL, 0, CONTROL_INTCN | CONTROL_A2IE)) {
+  if (!rtcUpdateRegister(REG_CONTROL, 0, CONTROL_A2IE)) {
     return false;
   }
   return rtcUpdateRegister(REG_STATUS, STATUS_A2F, 0);
