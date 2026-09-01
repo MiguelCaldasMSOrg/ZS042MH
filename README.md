@@ -6,9 +6,9 @@ An Arduino library for the DS3231 real-time clock and AT24C32 EEPROM found on co
 
 The default 7-bit I2C addresses are `0x68` for the DS3231 and `0x57` for the AT24C32. EEPROM address jumpers can select an address from `0x50` through `0x57`; pass a different address to the constructor when needed.
 
-For a BBC micro:bit V2, connect:
+For a BBC micro:bit V1 or V2, connect:
 
-| ZS-042/MH | BBC micro:bit V2 | Purpose |
+| ZS-042/MH | BBC micro:bit V1/V2 | Purpose |
 |---|---|---|
 | `VCC` | `3V` | 3.3 V power and logic reference |
 | `GND` | `GND` | Common ground |
@@ -16,6 +16,8 @@ For a BBC micro:bit V2, connect:
 | `SCL` | `P19` | I2C clock |
 | `SQW` / `INT/SQW` | `P2` | Optional alarm or square-wave signal |
 | `32K` | Not connected | Unused independent output |
+
+Arduino Mega 2560 is also supported through its default `Wire` bus; connect `SDA` to pin `20` and `SCL` to pin `21`. Verify that the module supply and pull-up voltages are compatible with every device on the 5 V I2C bus.
 
 Disconnect power before wiring. Power the module from 3.3 V when connected directly to 3.3 V controllers. Many clones pull I2C and alarm lines up to the module supply, making 5 V operation unsafe without verified level shifting.
 
@@ -64,6 +66,8 @@ The examples are available under **File > Examples > ZS042MH**:
 
 See [API reference](API.md) for complete signatures, parameters, side effects, return values, and error behavior. The tables below are a quick overview.
 
+Methods report success with their existing Boolean or value return. After a failure, `lastError()` provides a `ZS042MHError` reason for diagnostics.
+
 ### Clock and calendar
 
 | Method | Behavior |
@@ -110,16 +114,17 @@ EEPROM has finite write endurance; avoid unnecessary writes. See the [API refere
 
 ## Development and validation
 
-The library is architecture-neutral. Its primary development target is BBC micro:bit V2 with Sandeep Mistry's nRF5 core:
+The library is architecture-neutral. Its primary development targets are BBC micro:bit V1 and V2 with Sandeep Mistry's nRF5 core:
 
 ```powershell
 arduino-cli config add board_manager.additional_urls https://sandeepmistry.github.io/arduino-nRF5/package_nRF5_boards_index.json
 arduino-cli core update-index
 arduino-cli core install sandeepmistry:nRF5
+arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobit --warnings all --library . examples/ReadWriteTime
 arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobitV2 --warnings all --library . examples/ReadWriteTime
 ```
 
-Portability is also checked on the installed Arduino Uno and Nano ESP32 cores:
+Portability is also checked on the installed Arduino Uno and Nano ESP32 cores. Arduino Mega 2560 uses the same AVR core as Uno and has also been compile-tested; Uno remains the representative AVR validation target.
 
 ```powershell
 arduino-cli compile --fqbn arduino:avr:uno --warnings all --library . examples/ReadWriteTime
@@ -145,7 +150,7 @@ git tag -a v1.0.0 -m "ZS042MH 1.0.0"
 git push origin v1.0.0
 ```
 
-The workflow rejects mismatched or non-semantic versions, runs strict Arduino lint without Library Manager checks, verifies every alarm pattern with the host test, compiles every example for the primary target, and attaches `ZS042MH-<version>.zip` plus `ZS042MH-<version>.zip.sha256` to the GitHub release. Re-running the workflow replaces those assets safely.
+The workflow rejects mismatched or non-semantic versions, runs strict Arduino lint without Library Manager checks, verifies every alarm pattern with the host test, compiles every example for both micro:bit targets, and attaches `ZS042MH-<version>.zip` plus `ZS042MH-<version>.zip.sha256` to the GitHub release. Re-running the workflow replaces those assets safely.
 
 Install the attached ZIP in Arduino IDE with **Sketch > Include Library > Add .ZIP Library**. The package contains only the library metadata, source, examples, license, README, and API reference under a `ZS042MH` root directory.
 

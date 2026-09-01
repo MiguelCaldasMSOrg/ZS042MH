@@ -8,9 +8,34 @@ Include the library with:
 
 ## Error model
 
-Unless a method documents another result, Boolean methods return `true` only when all validation and I2C operations performed by that call succeed. They return `false` for invalid arguments, an address that does not acknowledge, a short read, another I2C transfer failure, or an EEPROM write-cycle timeout. The API does not expose a more specific numeric error code.
+Unless a method documents another result, Boolean methods return `true` only when all validation and I2C operations performed by that call succeed. They return `false` for invalid arguments, an address that does not acknowledge, a short read, another I2C transfer failure, or an EEPROM write-cycle timeout. Call `lastError()` after a failure for the specific reason.
 
 Output parameters are only changed on success unless stated otherwise. Operations that require multiple I2C transfers are not transactional: a later failure can leave earlier register or EEPROM writes applied.
+
+### `ZS042MHError`
+
+| Value | Meaning |
+|---|---|
+| `ZS042MH_ERROR_NONE` | The last fallible instance operation succeeded, or none has run. |
+| `ZS042MH_ERROR_INVALID_ARGUMENT` | An argument, range, mode, or rate is invalid. |
+| `ZS042MH_ERROR_ADDRESS_NACK` | `TwoWire::endTransmission()` returned `2`. |
+| `ZS042MH_ERROR_DATA_NACK` | `TwoWire::endTransmission()` returned `3`. |
+| `ZS042MH_ERROR_I2C` | `TwoWire::endTransmission()` returned another nonzero result. |
+| `ZS042MH_ERROR_SHORT_READ` | `TwoWire::requestFrom()` returned fewer bytes than requested. |
+| `ZS042MH_ERROR_INVALID_RTC_DATA` | RTC registers contain an unsupported or invalid encoding. |
+| `ZS042MH_ERROR_EEPROM_TIMEOUT` | The EEPROM did not acknowledge before the write-cycle timeout. |
+
+The `TwoWire` result meanings are conventional across Arduino cores, but a core may provide less detailed transport reporting. Such failures are reported as `ZS042MH_ERROR_I2C` when they cannot be classified more specifically.
+
+### `lastError()`
+
+```cpp
+ZS042MHError lastError() const;
+```
+
+Returns the error from the most recent fallible operation on this `ZS042MH` instance. A successful fallible operation resets it to `ZS042MH_ERROR_NONE`; reading `lastError()` does not clear it. Errors are stored independently for each instance.
+
+Constructors initialize the error to `ZS042MH_ERROR_NONE`. `begin()`, `eepromSize()`, `lastError()`, and the static date helpers do not change it. For a multi-transfer operation, the value describes the transfer or validation step that caused the operation to return failure; earlier changes may already have been applied.
 
 ## Types and constants
 

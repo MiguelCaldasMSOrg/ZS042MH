@@ -26,7 +26,7 @@ bool isValidBcd(uint8_t value) {
 }
 }
 
-ZS042MH::ZS042MH(TwoWire &wire, uint8_t rtcAddress, uint8_t eepromAddress, uint16_t eepromSize) : _wire(wire), _rtcAddress(rtcAddress), _eepromAddress(eepromAddress), _eepromSize(eepromSize) {
+ZS042MH::ZS042MH(TwoWire &wire, uint8_t rtcAddress, uint8_t eepromAddress, uint16_t eepromSize) : _wire(wire), _rtcAddress(rtcAddress), _eepromAddress(eepromAddress), _eepromSize(eepromSize), _lastError(ZS042MH_ERROR_NONE) {
 }
 
 ZS042MH::ZS042MH(uint8_t rtcAddress, uint8_t eepromAddress) : ZS042MH(Wire, rtcAddress, eepromAddress, DEFAULT_EEPROM_SIZE) {
@@ -37,10 +37,12 @@ void ZS042MH::begin() {
 }
 
 bool ZS042MH::rtcConnected() {
+  clearError();
   return deviceConnected(_rtcAddress);
 }
 
 bool ZS042MH::eepromConnected() {
+  clearError();
   return deviceConnected(_eepromAddress);
 }
 
@@ -69,8 +71,9 @@ uint8_t ZS042MH::calculateDayOfWeek(uint16_t year, uint8_t month, uint8_t day) {
 }
 
 bool ZS042MH::setTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+  clearError();
   if (!isValidDate(year, month, day) || hour > 23 || minute > 59 || second > 59) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   uint8_t buffer[7];
   buffer[0] = decimalToBcd(second) & 0x7F;
@@ -87,13 +90,14 @@ bool ZS042MH::setTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, u
 }
 
 bool ZS042MH::getTime(ZS042MHDateTime &dateTime) {
+  clearError();
   uint8_t buffer[7];
   if (!rtcRead(REG_TIME, buffer, sizeof(buffer))) {
     return false;
   }
 
   if ((buffer[0] & 0x80) || (buffer[1] & 0x80) || (buffer[2] & 0x80) || (buffer[3] & 0xF8) || (buffer[4] & 0xC0) || (buffer[5] & 0xE0) || !isValidBcd(buffer[0]) || !isValidBcd(buffer[1]) || !isValidBcd(buffer[4]) || !isValidBcd(buffer[5]) || !isValidBcd(buffer[6])) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_RTC_DATA);
   }
 
   ZS042MHDateTime decoded;
@@ -102,17 +106,17 @@ bool ZS042MH::getTime(ZS042MHDateTime &dateTime) {
   if (buffer[2] & 0x40) {
     uint8_t rawHour = buffer[2] & 0x1F;
     if (!isValidBcd(rawHour)) {
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_RTC_DATA);
     }
     uint8_t hour = bcdToDecimal(rawHour);
     if (hour < 1 || hour > 12) {
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_RTC_DATA);
     }
     decoded.hour = (buffer[2] & 0x20) ? (hour % 12) + 12 : hour % 12;
   } else {
     uint8_t rawHour = buffer[2] & 0x3F;
     if (!isValidBcd(rawHour)) {
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_RTC_DATA);
     }
     decoded.hour = bcdToDecimal(rawHour);
   }
@@ -121,7 +125,7 @@ bool ZS042MH::getTime(ZS042MHDateTime &dateTime) {
   decoded.month = bcdToDecimal(buffer[5]);
   decoded.year = 2000 + bcdToDecimal(buffer[6]);
   if (decoded.second > 59 || decoded.minute > 59 || decoded.hour > 23 || decoded.dayOfWeek < 1 || !isValidDate(decoded.year, decoded.month, decoded.day)) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_RTC_DATA);
   }
 
   dateTime = decoded;
@@ -129,6 +133,7 @@ bool ZS042MH::getTime(ZS042MHDateTime &dateTime) {
 }
 
 float ZS042MH::getTemperature() {
+  clearError();
   uint8_t buffer[2];
   if (!rtcRead(REG_TEMPERATURE, buffer, sizeof(buffer))) {
     return NAN;
@@ -137,6 +142,7 @@ float ZS042MH::getTemperature() {
 }
 
 bool ZS042MH::oscillatorStopped(bool &stopped) {
+  clearError();
   uint8_t status;
   if (!rtcRead(REG_STATUS, &status, 1)) {
     return false;
@@ -146,8 +152,9 @@ bool ZS042MH::oscillatorStopped(bool &stopped) {
 }
 
 bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+  clearError();
   if (mode > ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   uint8_t buffer[4] = {0, 0, 0, 0};
   switch (mode) {
@@ -159,7 +166,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A1_MATCH_SECOND:
       if (second > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(second);
       buffer[1] |= 0x80;
@@ -168,7 +175,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A1_MATCH_MINUTE_SECOND:
       if (minute > 59 || second > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(second);
       buffer[1] = decimalToBcd(minute);
@@ -177,7 +184,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND:
       if (hour > 23 || minute > 59 || second > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(second);
       buffer[1] = decimalToBcd(minute);
@@ -186,7 +193,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND:
       if (day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(second);
       buffer[1] = decimalToBcd(minute);
@@ -195,7 +202,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND:
       if (day < 1 || day > 7 || hour > 23 || minute > 59 || second > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(second);
       buffer[1] = decimalToBcd(minute);
@@ -203,7 +210,7 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
       buffer[3] = decimalToBcd(day) | 0x40;
       break;
     default:
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   if (!rtcWrite(REG_ALARM_1, buffer, sizeof(buffer))) {
     return false;
@@ -215,8 +222,9 @@ bool ZS042MH::setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8
 }
 
 bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute) {
+  clearError();
   if (mode > ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   uint8_t buffer[3] = {0, 0, 0};
   switch (mode) {
@@ -227,7 +235,7 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A2_MATCH_MINUTE:
       if (minute > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(minute);
       buffer[1] |= 0x80;
@@ -235,7 +243,7 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A2_MATCH_HOUR_MINUTE:
       if (hour > 23 || minute > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(minute);
       buffer[1] = decimalToBcd(hour);
@@ -243,7 +251,7 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A2_MATCH_DATE_HOUR_MINUTE:
       if (day < 1 || day > 31 || hour > 23 || minute > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(minute);
       buffer[1] = decimalToBcd(hour);
@@ -251,14 +259,14 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
       break;
     case ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE:
       if (day < 1 || day > 7 || hour > 23 || minute > 59) {
-        return false;
+        return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
       }
       buffer[0] = decimalToBcd(minute);
       buffer[1] = decimalToBcd(hour);
       buffer[2] = decimalToBcd(day) | 0x40;
       break;
     default:
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   if (!rtcWrite(REG_ALARM_2, buffer, sizeof(buffer))) {
     return false;
@@ -270,8 +278,9 @@ bool ZS042MH::setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8
 }
 
 bool ZS042MH::disableAlarm(uint8_t alarmNumber) {
+  clearError();
   if (alarmNumber != 1 && alarmNumber != 2) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   uint8_t enableBit = alarmNumber == 1 ? CONTROL_A1IE : CONTROL_A2IE;
   uint8_t flagBit = alarmNumber == 1 ? STATUS_A1F : STATUS_A2F;
@@ -282,6 +291,7 @@ bool ZS042MH::disableAlarm(uint8_t alarmNumber) {
 }
 
 bool ZS042MH::checkAndClearAlarms(uint8_t &fired) {
+  clearError();
   uint8_t status;
   fired = 0;
   if (!rtcRead(REG_STATUS, &status, 1)) {
@@ -295,10 +305,12 @@ bool ZS042MH::checkAndClearAlarms(uint8_t &fired) {
 }
 
 bool ZS042MH::setAlarmInterruptMode() {
+  clearError();
   return rtcUpdateRegister(REG_CONTROL, 0, CONTROL_INTCN);
 }
 
 bool ZS042MH::setSquareWave(uint16_t rate) {
+  clearError();
   uint8_t rateBits;
   switch (rate) {
     case 1:
@@ -314,7 +326,7 @@ bool ZS042MH::setSquareWave(uint16_t rate) {
       rateBits = CONTROL_RS1 | CONTROL_RS2;
       break;
     default:
-      return false;
+      return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   return rtcUpdateRegister(REG_CONTROL, CONTROL_INTCN | CONTROL_RS1 | CONTROL_RS2, rateBits);
 }
@@ -328,8 +340,9 @@ bool ZS042MH::eepromWriteByte(uint16_t address, uint8_t value) {
 }
 
 bool ZS042MH::eepromWrite(uint16_t address, const uint8_t *data, uint16_t length) {
+  clearError();
   if (!eepromRangeValid(address, length) || (length && data == NULL)) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   while (length) {
     uint8_t pageRoom = EEPROM_PAGE_SIZE - (address % EEPROM_PAGE_SIZE);
@@ -343,8 +356,9 @@ bool ZS042MH::eepromWrite(uint16_t address, const uint8_t *data, uint16_t length
     for (uint8_t index = 0; index < chunk; index++) {
       _wire.write(data[index]);
     }
-    if (_wire.endTransmission() != 0) {
-      return false;
+    uint8_t result = _wire.endTransmission();
+    if (result != 0) {
+      return setTransmissionError(result);
     }
     if (!eepromWaitReady()) {
       return false;
@@ -357,16 +371,21 @@ bool ZS042MH::eepromWrite(uint16_t address, const uint8_t *data, uint16_t length
 }
 
 bool ZS042MH::eepromRead(uint16_t address, uint8_t *data, uint16_t length) {
+  clearError();
   if (!eepromRangeValid(address, length) || (length && data == NULL)) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   while (length) {
     uint8_t chunk = length < WIRE_DATA_CHUNK ? (uint8_t)length : WIRE_DATA_CHUNK;
     _wire.beginTransmission(_eepromAddress);
     _wire.write((uint8_t)(address >> 8));
     _wire.write((uint8_t)address);
-    if (_wire.endTransmission(false) != 0 || _wire.requestFrom((int)_eepromAddress, (int)chunk) != chunk) {
-      return false;
+    uint8_t result = _wire.endTransmission(false);
+    if (result != 0) {
+      return setTransmissionError(result);
+    }
+    if (_wire.requestFrom((int)_eepromAddress, (int)chunk) != chunk) {
+      return setError(ZS042MH_ERROR_SHORT_READ);
     }
     for (uint8_t index = 0; index < chunk; index++) {
       data[index] = _wire.read();
@@ -379,8 +398,9 @@ bool ZS042MH::eepromRead(uint16_t address, uint8_t *data, uint16_t length) {
 }
 
 bool ZS042MH::eepromFill(uint16_t address, uint16_t length, uint8_t value) {
+  clearError();
   if (!eepromRangeValid(address, length)) {
-    return false;
+    return setError(ZS042MH_ERROR_INVALID_ARGUMENT);
   }
   uint8_t buffer[WIRE_DATA_CHUNK];
   memset(buffer, value, sizeof(buffer));
@@ -395,6 +415,10 @@ bool ZS042MH::eepromFill(uint16_t address, uint16_t length, uint8_t value) {
   return true;
 }
 
+ZS042MHError ZS042MH::lastError() const {
+  return _lastError;
+}
+
 uint8_t ZS042MH::bcdToDecimal(uint8_t value) {
   return (value >> 4) * 10 + (value & 0x0F);
 }
@@ -403,9 +427,29 @@ uint8_t ZS042MH::decimalToBcd(uint8_t value) {
   return ((value / 10) << 4) | (value % 10);
 }
 
+void ZS042MH::clearError() {
+  _lastError = ZS042MH_ERROR_NONE;
+}
+
+bool ZS042MH::setError(ZS042MHError error) {
+  _lastError = error;
+  return false;
+}
+
+bool ZS042MH::setTransmissionError(uint8_t result) {
+  if (result == 2) {
+    return setError(ZS042MH_ERROR_ADDRESS_NACK);
+  }
+  if (result == 3) {
+    return setError(ZS042MH_ERROR_DATA_NACK);
+  }
+  return setError(ZS042MH_ERROR_I2C);
+}
+
 bool ZS042MH::deviceConnected(uint8_t address) {
   _wire.beginTransmission(address);
-  return _wire.endTransmission() == 0;
+  uint8_t result = _wire.endTransmission();
+  return result == 0 || setTransmissionError(result);
 }
 
 bool ZS042MH::rtcWrite(uint8_t reg, const uint8_t *buffer, uint8_t length) {
@@ -414,15 +458,20 @@ bool ZS042MH::rtcWrite(uint8_t reg, const uint8_t *buffer, uint8_t length) {
   for (uint8_t index = 0; index < length; index++) {
     _wire.write(buffer[index]);
   }
-  return _wire.endTransmission() == 0;
+  uint8_t result = _wire.endTransmission();
+  return result == 0 || setTransmissionError(result);
 }
 
 bool ZS042MH::rtcRead(uint8_t reg, uint8_t *buffer, uint8_t length) {
   memset(buffer, 0, length);
   _wire.beginTransmission(_rtcAddress);
   _wire.write(reg);
-  if (_wire.endTransmission(false) != 0 || _wire.requestFrom((int)_rtcAddress, (int)length) != length) {
-    return false;
+  uint8_t result = _wire.endTransmission(false);
+  if (result != 0) {
+    return setTransmissionError(result);
+  }
+  if (_wire.requestFrom((int)_rtcAddress, (int)length) != length) {
+    return setError(ZS042MH_ERROR_SHORT_READ);
   }
   for (uint8_t index = 0; index < length; index++) {
     buffer[index] = _wire.read();
@@ -455,5 +504,5 @@ bool ZS042MH::eepromWaitReady() {
       return true;
     }
   } while ((uint32_t)(millis() - startedAt) < EEPROM_WRITE_TIMEOUT_MS);
-  return false;
+  return setError(ZS042MH_ERROR_EEPROM_TIMEOUT);
 }

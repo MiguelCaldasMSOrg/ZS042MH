@@ -31,6 +31,17 @@ enum ZS042MHAlarm2Mode {
   ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE
 };
 
+enum ZS042MHError : uint8_t {
+  ZS042MH_ERROR_NONE,
+  ZS042MH_ERROR_INVALID_ARGUMENT,
+  ZS042MH_ERROR_ADDRESS_NACK,
+  ZS042MH_ERROR_DATA_NACK,
+  ZS042MH_ERROR_I2C,
+  ZS042MH_ERROR_SHORT_READ,
+  ZS042MH_ERROR_INVALID_RTC_DATA,
+  ZS042MH_ERROR_EEPROM_TIMEOUT
+};
+
 class ZS042MH {
  public:
   static const uint8_t DEFAULT_RTC_ADDRESS = 0x68;
@@ -66,6 +77,7 @@ class ZS042MH {
   bool eepromWrite(uint16_t address, const uint8_t *data, uint16_t length);
   bool eepromRead(uint16_t address, uint8_t *data, uint16_t length);
   bool eepromFill(uint16_t address, uint16_t length, uint8_t value);
+  ZS042MHError lastError() const;
 
  private:
   static const uint8_t EEPROM_PAGE_SIZE = 32;
@@ -76,9 +88,13 @@ class ZS042MH {
   uint8_t _rtcAddress;
   uint8_t _eepromAddress;
   uint16_t _eepromSize;
+  ZS042MHError _lastError;
 
   static uint8_t bcdToDecimal(uint8_t value);
   static uint8_t decimalToBcd(uint8_t value);
+  void clearError();
+  bool setError(ZS042MHError error);
+  bool setTransmissionError(uint8_t result);
   bool deviceConnected(uint8_t address);
   bool rtcWrite(uint8_t reg, const uint8_t *buffer, uint8_t length);
   bool rtcRead(uint8_t reg, uint8_t *buffer, uint8_t length);

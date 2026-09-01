@@ -13,7 +13,9 @@ class TwoWire {
   };
 
   std::vector<Transmission> transmissions;
+  std::vector<uint8_t> endTransmissionResults;
   uint8_t registers[256] = {};
+  int requestFromResult = -1;
 
   void begin() {
   }
@@ -31,6 +33,14 @@ class TwoWire {
   uint8_t endTransmission(bool stop = true) {
     (void)stop;
     transmissions.push_back({_address, _outgoing});
+    uint8_t result = 0;
+    if (!endTransmissionResults.empty()) {
+      result = endTransmissionResults.front();
+      endTransmissionResults.erase(endTransmissionResults.begin());
+    }
+    if (result != 0) {
+      return result;
+    }
     if (!_outgoing.empty()) {
       _registerPointer = _outgoing[0];
       for (size_t index = 1; index < _outgoing.size(); index++) {
@@ -40,13 +50,14 @@ class TwoWire {
         _registerPointer = _outgoing[0];
       }
     }
-    return 0;
+    return result;
   }
 
   uint8_t requestFrom(int address, int quantity) {
     (void)address;
-    _remaining = quantity;
-    return (uint8_t)quantity;
+    int result = requestFromResult < 0 ? quantity : requestFromResult;
+    _remaining = result;
+    return (uint8_t)result;
   }
 
   int read() {

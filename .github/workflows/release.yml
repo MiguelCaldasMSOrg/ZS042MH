@@ -83,10 +83,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for sketch in examples/*; do
-            if [[ -d "$sketch" ]]; then
-              arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobitV2 --warnings all --library . "$sketch"
-            fi
+          for fqbn in sandeepmistry:nRF5:BBCmicrobit sandeepmistry:nRF5:BBCmicrobitV2; do
+            for sketch in examples/*; do
+              if [[ -d "$sketch" ]]; then
+                arduino-cli compile --fqbn "$fqbn" --warnings all --library . "$sketch"
+              fi
+            done
           done
 
       - name: Build Arduino IDE package

@@ -18,6 +18,8 @@ void delay(unsigned long milliseconds) {
 
 void resetWire() {
   Wire.transmissions.clear();
+  Wire.endTransmissionResults.clear();
+  Wire.requestFromResult = -1;
   for (size_t index = 0; index < sizeof(Wire.registers); index++) {
     Wire.registers[index] = 0;
   }
@@ -49,6 +51,57 @@ void expectAlarm2(ZS042MH &zs042mh, ZS042MHAlarm2Mode mode, uint8_t day, uint8_t
 
 int main() {
   ZS042MH zs042mh(Wire);
+  assert(zs042mh.lastError() == ZS042MH_ERROR_NONE);
+
+  resetWire();
+  assert(!zs042mh.setSquareWave(0));
+  assert(zs042mh.lastError() == ZS042MH_ERROR_INVALID_ARGUMENT);
+  assert(!ZS042MH::isValidDate(2026, 2, 29));
+  assert(zs042mh.lastError() == ZS042MH_ERROR_INVALID_ARGUMENT);
+  zs042mh.begin();
+  assert(zs042mh.eepromSize() == ZS042MH::DEFAULT_EEPROM_SIZE);
+  assert(zs042mh.lastError() == ZS042MH_ERROR_INVALID_ARGUMENT);
+
+  ZS042MH secondInstance(Wire);
+  assert(secondInstance.lastError() == ZS042MH_ERROR_NONE);
+
+  resetWire();
+  Wire.endTransmissionResults.push_back(2);
+  assert(!zs042mh.rtcConnected());
+  assert(zs042mh.lastError() == ZS042MH_ERROR_ADDRESS_NACK);
+
+  resetWire();
+  Wire.endTransmissionResults.push_back(3);
+  assert(!zs042mh.rtcConnected());
+  assert(zs042mh.lastError() == ZS042MH_ERROR_DATA_NACK);
+
+  resetWire();
+  Wire.endTransmissionResults.push_back(4);
+  assert(!zs042mh.rtcConnected());
+  assert(zs042mh.lastError() == ZS042MH_ERROR_I2C);
+
+  resetWire();
+  Wire.requestFromResult = 1;
+  float temperature = zs042mh.getTemperature();
+  assert(temperature != temperature);
+  assert(zs042mh.lastError() == ZS042MH_ERROR_SHORT_READ);
+
+  resetWire();
+  ZS042MHDateTime dateTime;
+  assert(!zs042mh.getTime(dateTime));
+  assert(zs042mh.lastError() == ZS042MH_ERROR_INVALID_RTC_DATA);
+
+  resetWire();
+  Wire.endTransmissionResults.push_back(0);
+  for (uint8_t attempt = 0; attempt < 25; attempt++) {
+    Wire.endTransmissionResults.push_back(2);
+  }
+  assert(!zs042mh.eepromWriteByte(0, 0x55));
+  assert(zs042mh.lastError() == ZS042MH_ERROR_EEPROM_TIMEOUT);
+
+  resetWire();
+  assert(zs042mh.rtcConnected());
+  assert(zs042mh.lastError() == ZS042MH_ERROR_NONE);
 
   resetWire();
   ZS042MH addressedRtcEeprom(0x69, 0x50);

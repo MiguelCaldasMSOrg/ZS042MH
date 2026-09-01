@@ -7,18 +7,21 @@ void setup() {
   zs042mh.begin();
 
   if (!zs042mh.eepromConnected()) {
-    Serial.println("AT24C32 not found at 0x57");
+    Serial.print("AT24C32 connection failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
 
   const uint8_t message[] = "Hello, EEPROM!";
   uint8_t result[sizeof(message)];
   if (!zs042mh.eepromWrite(0, message, sizeof(message))) {
-    Serial.println("EEPROM write failed");
+    Serial.print("EEPROM write failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
   if (!zs042mh.eepromRead(0, result, sizeof(result))) {
-    Serial.println("EEPROM read failed");
+    Serial.print("EEPROM read failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
 

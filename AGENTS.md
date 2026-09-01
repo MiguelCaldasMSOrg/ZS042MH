@@ -15,9 +15,10 @@ This repository is an Arduino library for ZS-042/MH modules containing a DS3231 
 
 ## Validation
 
-Compile every example for the primary test target:
+Compile every example for both primary test targets:
 
 ```powershell
+Get-ChildItem examples -Directory | ForEach-Object { arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobit --warnings all --library . $_.FullName }
 Get-ChildItem examples -Directory | ForEach-Object { arduino-cli compile --fqbn sandeepmistry:nRF5:BBCmicrobitV2 --warnings all --library . $_.FullName }
 ```
 

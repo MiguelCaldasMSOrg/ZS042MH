@@ -9,11 +9,13 @@ void setup() {
   zs042mh.begin();
 
   if (!zs042mh.rtcConnected()) {
-    Serial.println("DS3231 not found at 0x68");
+    Serial.print("DS3231 connection failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
   if (!zs042mh.setSquareWave(CLOCK_RATE_HZ)) {
-    Serial.println("Could not configure square-wave output");
+    Serial.print("Could not configure square-wave output, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
 

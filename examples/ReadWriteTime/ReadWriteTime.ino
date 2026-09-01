@@ -14,13 +14,15 @@ void setup() {
   zs042mh.begin();
 
   if (!zs042mh.rtcConnected()) {
-    Serial.println("DS3231 not found at 0x68");
+    Serial.print("DS3231 connection failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
 
   bool stopped;
   if (!zs042mh.oscillatorStopped(stopped)) {
-    Serial.println("Could not read oscillator status");
+    Serial.print("Could not read oscillator status, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
   if (stopped) {
@@ -34,7 +36,8 @@ void setup() {
 void loop() {
   ZS042MHDateTime now;
   if (!zs042mh.getTime(now)) {
-    Serial.println("RTC read failed");
+    Serial.print("RTC read failed, error ");
+    Serial.println((int)zs042mh.lastError());
     delay(1000);
     return;
   }

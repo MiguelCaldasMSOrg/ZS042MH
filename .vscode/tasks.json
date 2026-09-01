@@ -4,7 +4,7 @@
       "args": [
         "compile",
         "--fqbn",
-        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "${input:microbitFqbn}",
         "--warnings",
         "all",
         "--library",
@@ -29,7 +29,7 @@
       "args": [
         "compile",
         "--fqbn",
-        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "${input:microbitFqbn}",
         "--warnings",
         "all",
         "--upload",
@@ -53,7 +53,7 @@
       "args": [
         "compile",
         "--fqbn",
-        "sandeepmistry:nRF5:BBCmicrobitV2",
+        "${input:microbitFqbn}",
         "--build-path",
         ".build",
         "--only-compilation-database",
@@ -72,6 +72,16 @@
   ],
   "inputs": [
     {
+      "default": "sandeepmistry:nRF5:BBCmicrobitV2",
+      "description": "BBC micro:bit board",
+      "id": "microbitFqbn",
+      "options": [
+        "sandeepmistry:nRF5:BBCmicrobit",
+        "sandeepmistry:nRF5:BBCmicrobitV2"
+      ],
+      "type": "pickString"
+    },
+    {
       "default": "examples/ReadWriteTime",
       "description": "Example sketch directory",
       "id": "examplePath",
@@ -79,7 +89,7 @@
     },
     {
       "default": "COM3",
-      "description": "BBC micro:bit V2 USB serial port",
+      "description": "BBC micro:bit USB serial port",
       "id": "microbitPort",
       "type": "promptString"
     }

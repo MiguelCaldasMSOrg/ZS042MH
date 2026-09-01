@@ -7,15 +7,18 @@ void setup() {
   zs042mh.begin();
 
   if (!zs042mh.rtcConnected()) {
-    Serial.println("DS3231 not found at 0x68");
+    Serial.print("DS3231 connection failed, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
   if (!zs042mh.setAlarm1(ZS042MH_A1_EVERY_SECOND, 0, 0, 0, 0)) {
-    Serial.println("Could not configure Alarm 1");
+    Serial.print("Could not configure Alarm 1, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
   if (!zs042mh.setAlarm2(ZS042MH_A2_EVERY_MINUTE, 0, 0, 0)) {
-    Serial.println("Could not configure Alarm 2");
+    Serial.print("Could not configure Alarm 2, error ");
+    Serial.println((int)zs042mh.lastError());
     return;
   }
 
@@ -26,7 +29,8 @@ void setup() {
 void loop() {
   uint8_t fired;
   if (!zs042mh.checkAndClearAlarms(fired)) {
-    Serial.println("Could not read alarm status");
+    Serial.print("Could not read alarm status, error ");
+    Serial.println((int)zs042mh.lastError());
     delay(1000);
     return;
   }
