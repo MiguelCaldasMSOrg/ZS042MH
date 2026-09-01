@@ -19,7 +19,7 @@ void setup() {
     Serial.println((int)zs042mh.lastError());
     return;
   }
-  if (!zs042mh.setAlarm1(ZS042MH_A1_EVERY_SECOND, 1, 0, 0, 0)) {
+  if (!zs042mh.setAlarm1(ZS042MHAlarm1Mode::EverySecond, 1, 0, 0, 0)) {
     Serial.print("Could not configure Alarm 1, error ");
     Serial.println((int)zs042mh.lastError());
     return;
@@ -31,8 +31,8 @@ void setup() {
   }
 
   // Other schedules include minute/second, daily time, monthly date, and weekly weekday matches.
-  // zs042mh.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 15, 30);
-  // zs042mh.setAlarm2(ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 1, 9, 0);
+  // zs042mh.setAlarm1(ZS042MHAlarm1Mode::MatchMinuteSecond, 0, 0, 15, 30);
+  // zs042mh.setAlarm2(ZS042MHAlarm2Mode::MatchWeekdayHourMinute, 1, 9, 0);
 
   attachInterrupt(digitalPinToInterrupt(ALARM_PIN), onAlarm, FALLING);
   alarmPending = digitalRead(ALARM_PIN) == LOW;

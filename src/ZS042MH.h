@@ -14,32 +14,32 @@ struct ZS042MHDateTime {
   uint8_t second;
 };
 
-enum ZS042MHAlarm1Mode {
-  ZS042MH_A1_EVERY_SECOND,
-  ZS042MH_A1_MATCH_SECOND,
-  ZS042MH_A1_MATCH_MINUTE_SECOND,
-  ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND,
-  ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND,
-  ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND
+enum class ZS042MHAlarm1Mode : uint8_t {
+  EverySecond,
+  MatchSecond,
+  MatchMinuteSecond,
+  MatchHourMinuteSecond,
+  MatchDateHourMinuteSecond,
+  MatchWeekdayHourMinuteSecond
 };
 
-enum ZS042MHAlarm2Mode {
-  ZS042MH_A2_EVERY_MINUTE,
-  ZS042MH_A2_MATCH_MINUTE,
-  ZS042MH_A2_MATCH_HOUR_MINUTE,
-  ZS042MH_A2_MATCH_DATE_HOUR_MINUTE,
-  ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE
+enum class ZS042MHAlarm2Mode : uint8_t {
+  EveryMinute,
+  MatchMinute,
+  MatchHourMinute,
+  MatchDateHourMinute,
+  MatchWeekdayHourMinute
 };
 
-enum ZS042MHError : uint8_t {
-  ZS042MH_ERROR_NONE,
-  ZS042MH_ERROR_INVALID_ARGUMENT,
-  ZS042MH_ERROR_ADDRESS_NACK,
-  ZS042MH_ERROR_DATA_NACK,
-  ZS042MH_ERROR_I2C,
-  ZS042MH_ERROR_SHORT_READ,
-  ZS042MH_ERROR_INVALID_RTC_DATA,
-  ZS042MH_ERROR_EEPROM_TIMEOUT
+enum class ZS042MHError : uint8_t {
+  None,
+  InvalidArgument,
+  AddressNack,
+  DataNack,
+  I2c,
+  ShortRead,
+  InvalidRtcData,
+  EepromTimeout
 };
 
 class ZS042MH {

@@ -11,12 +11,12 @@ void setup() {
     Serial.println((int)zs042mh.lastError());
     return;
   }
-  if (!zs042mh.setAlarm1(ZS042MH_A1_EVERY_SECOND, 0, 0, 0, 0)) {
+  if (!zs042mh.setAlarm1(ZS042MHAlarm1Mode::EverySecond, 0, 0, 0, 0)) {
     Serial.print("Could not configure Alarm 1, error ");
     Serial.println((int)zs042mh.lastError());
     return;
   }
-  if (!zs042mh.setAlarm2(ZS042MH_A2_EVERY_MINUTE, 0, 0, 0)) {
+  if (!zs042mh.setAlarm2(ZS042MHAlarm2Mode::EveryMinute, 0, 0, 0)) {
     Serial.print("Could not configure Alarm 2, error ");
     Serial.println((int)zs042mh.lastError());
     return;

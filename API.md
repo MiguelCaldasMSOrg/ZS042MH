@@ -16,16 +16,16 @@ Output parameters are only changed on success unless stated otherwise. Operation
 
 | Value | Meaning |
 |---|---|
-| `ZS042MH_ERROR_NONE` | The last fallible instance operation succeeded, or none has run. |
-| `ZS042MH_ERROR_INVALID_ARGUMENT` | An argument, range, mode, or rate is invalid. |
-| `ZS042MH_ERROR_ADDRESS_NACK` | `TwoWire::endTransmission()` returned `2`. |
-| `ZS042MH_ERROR_DATA_NACK` | `TwoWire::endTransmission()` returned `3`. |
-| `ZS042MH_ERROR_I2C` | `TwoWire::endTransmission()` returned another nonzero result. |
-| `ZS042MH_ERROR_SHORT_READ` | `TwoWire::requestFrom()` returned fewer bytes than requested. |
-| `ZS042MH_ERROR_INVALID_RTC_DATA` | RTC registers contain an unsupported or invalid encoding. |
-| `ZS042MH_ERROR_EEPROM_TIMEOUT` | The EEPROM did not acknowledge before the write-cycle timeout. |
+| `ZS042MHError::None` | The last fallible instance operation succeeded, or none has run. |
+| `ZS042MHError::InvalidArgument` | An argument, range, mode, or rate is invalid. |
+| `ZS042MHError::AddressNack` | `TwoWire::endTransmission()` returned `2`. |
+| `ZS042MHError::DataNack` | `TwoWire::endTransmission()` returned `3`. |
+| `ZS042MHError::I2c` | `TwoWire::endTransmission()` returned another nonzero result. |
+| `ZS042MHError::ShortRead` | `TwoWire::requestFrom()` returned fewer bytes than requested. |
+| `ZS042MHError::InvalidRtcData` | RTC registers contain an unsupported or invalid encoding. |
+| `ZS042MHError::EepromTimeout` | The EEPROM did not acknowledge before the write-cycle timeout. |
 
-The `TwoWire` result meanings are conventional across Arduino cores, but a core may provide less detailed transport reporting. Such failures are reported as `ZS042MH_ERROR_I2C` when they cannot be classified more specifically.
+The `TwoWire` result meanings are conventional across Arduino cores, but a core may provide less detailed transport reporting. Such failures are reported as `ZS042MHError::I2c` when they cannot be classified more specifically.
 
 ### `lastError()`
 
@@ -33,9 +33,9 @@ The `TwoWire` result meanings are conventional across Arduino cores, but a core 
 ZS042MHError lastError() const;
 ```
 
-Returns the error from the most recent fallible operation on this `ZS042MH` instance. A successful fallible operation resets it to `ZS042MH_ERROR_NONE`; reading `lastError()` does not clear it. Errors are stored independently for each instance.
+Returns the error from the most recent fallible operation on this `ZS042MH` instance. A successful fallible operation resets it to `ZS042MHError::None`; reading `lastError()` does not clear it. Errors are stored independently for each instance.
 
-Constructors initialize the error to `ZS042MH_ERROR_NONE`. `begin()`, `eepromSize()`, `lastError()`, and the static date helpers do not change it. For a multi-transfer operation, the value describes the transfer or validation step that caused the operation to return failure; earlier changes may already have been applied.
+Constructors initialize the error to `ZS042MHError::None`. `begin()`, `eepromSize()`, `lastError()`, and the static date helpers do not change it. For a multi-transfer operation, the value describes the transfer or validation step that caused the operation to return failure; earlier changes may already have been applied.
 
 ## Types and constants
 
@@ -61,22 +61,22 @@ struct ZS042MHDateTime {
 
 | Value | Fields matched |
 |---|---|
-| `ZS042MH_A1_EVERY_SECOND` | None |
-| `ZS042MH_A1_MATCH_SECOND` | Second |
-| `ZS042MH_A1_MATCH_MINUTE_SECOND` | Minute, second |
-| `ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND` | Hour, minute, second |
-| `ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND` | Date, hour, minute, second |
-| `ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND` | Weekday, hour, minute, second |
+| `ZS042MHAlarm1Mode::EverySecond` | None |
+| `ZS042MHAlarm1Mode::MatchSecond` | Second |
+| `ZS042MHAlarm1Mode::MatchMinuteSecond` | Minute, second |
+| `ZS042MHAlarm1Mode::MatchHourMinuteSecond` | Hour, minute, second |
+| `ZS042MHAlarm1Mode::MatchDateHourMinuteSecond` | Date, hour, minute, second |
+| `ZS042MHAlarm1Mode::MatchWeekdayHourMinuteSecond` | Weekday, hour, minute, second |
 
 `ZS042MHAlarm2Mode` contains:
 
 | Value | Fields matched |
 |---|---|
-| `ZS042MH_A2_EVERY_MINUTE` | None; fires at second `00` |
-| `ZS042MH_A2_MATCH_MINUTE` | Minute |
-| `ZS042MH_A2_MATCH_HOUR_MINUTE` | Hour, minute |
-| `ZS042MH_A2_MATCH_DATE_HOUR_MINUTE` | Date, hour, minute |
-| `ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE` | Weekday, hour, minute |
+| `ZS042MHAlarm2Mode::EveryMinute` | None; fires at second `00` |
+| `ZS042MHAlarm2Mode::MatchMinute` | Minute |
+| `ZS042MHAlarm2Mode::MatchHourMinute` | Hour, minute |
+| `ZS042MHAlarm2Mode::MatchDateHourMinute` | Date, hour, minute |
+| `ZS042MHAlarm2Mode::MatchWeekdayHourMinute` | Weekday, hour, minute |
 
 ### Class constants
 
@@ -229,7 +229,7 @@ bool setAlarm1(ZS042MHAlarm1Mode mode, uint8_t day,
 - `day`: date `1` through `31` for the date mode, or Sunday `1` through Saturday `7` for the weekday mode. Ignored by other modes.
 - `hour`: `0` through `23` when matched; ignored by modes that do not match the hour.
 - `minute`: `0` through `59` when matched; ignored by modes that do not match the minute.
-- `second`: `0` through `59` when matched; ignored by `ZS042MH_A1_EVERY_SECOND`.
+- `second`: `0` through `59` when matched; ignored by `ZS042MHAlarm1Mode::EverySecond`.
 
 Writes the four Alarm 1 registers, enables Alarm 1 (`A1IE`), and clears the old Alarm 1 flag. It does not change the `INT/SQW` output mode or square-wave rate, so the schedule can be configured while the pin continues to output a square wave. Call `setAlarmInterruptMode()` separately when enabled alarms should drive `INT/SQW`. Alarm 2 enable state and unrelated control/status bits are preserved. Returns `false` for an unknown mode, an invalid parameter used by that mode, or any I2C failure. Ignored parameters are not validated. Because setup uses multiple transfers, `false` can be returned after alarm registers or control bits have changed.
 
@@ -243,7 +243,7 @@ bool setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day,
 - `mode`: one of the Alarm 2 modes listed above.
 - `day`: date `1` through `31` for the date mode, or Sunday `1` through Saturday `7` for the weekday mode. Ignored by other modes.
 - `hour`: `0` through `23` when matched; ignored by modes that do not match the hour.
-- `minute`: `0` through `59` when matched; ignored by `ZS042MH_A2_EVERY_MINUTE`.
+- `minute`: `0` through `59` when matched; ignored by `ZS042MHAlarm2Mode::EveryMinute`.
 
 Writes the three Alarm 2 registers, enables Alarm 2 (`A2IE`), and clears the old Alarm 2 flag. It does not change the `INT/SQW` output mode or square-wave rate. Call `setAlarmInterruptMode()` separately when enabled alarms should drive `INT/SQW`. Alarm 1 enable state and unrelated bits are preserved. Return and partial-application behavior match `setAlarm1()`.
 
