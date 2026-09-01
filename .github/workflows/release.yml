@@ -51,9 +51,24 @@ jobs:
           "$RUNNER_TEMP/alarm_modes_test"
 
       - name: Install Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
-        with:
-          version: "1.x"
+        shell: bash
+        env:
+          ARDUINO_CLI_VERSION: "1.5.1"
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/arduino-cli"
+          archive="arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
+          checksums="${ARDUINO_CLI_VERSION}-checksums.txt"
+          release_url="https://github.com/arduino/arduino-cli/releases/download/v${ARDUINO_CLI_VERSION}"
+          mkdir -p "$install_dir"
+          curl --fail --location --silent --show-error --output "$install_dir/$archive" "$release_url/$archive"
+          curl --fail --location --silent --show-error --output "$install_dir/$checksums" "$release_url/$checksums"
+          (
+            cd "$install_dir"
+            grep "  $archive$" "$checksums" | sha256sum --check --strict -
+            tar --extract --gzip --file "$archive"
+          )
+          echo "$install_dir" >> "$GITHUB_PATH"
 
       - name: Install primary board core
         shell: bash
