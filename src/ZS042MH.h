@@ -40,6 +40,7 @@ class ZS042MH {
   static const uint8_t ALARM_2 = 0x02;
 
   explicit ZS042MH(TwoWire &wire = Wire, uint8_t rtcAddress = DEFAULT_RTC_ADDRESS, uint8_t eepromAddress = DEFAULT_EEPROM_ADDRESS, uint16_t eepromSize = DEFAULT_EEPROM_SIZE);
+  ZS042MH(uint8_t rtcAddress, uint8_t eepromAddress);
 
   void begin();
   bool rtcConnected();

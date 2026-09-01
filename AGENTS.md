@@ -54,5 +54,5 @@ Compilation does not verify physical wiring, clone-specific pull-ups, alarm sign
 - Install Arduino CLI in the workflow from a pinned official release archive and verify it against Arduino's published checksum; do not use actions that depend on deprecated Node runtimes.
 - Keep `library.properties` at a three-part semantic version and tag the release commit with the exact corresponding `v<version>` tag.
 - Push the version commit to `master` before pushing its tag. The tag triggers the release workflow.
-- Keep generated ZIP and checksum files out of Git. The workflow packages `library.properties`, `keywords.txt`, `LICENSE`, `README.md`, `src`, and `examples` beneath a `ZS042MH` archive root.
+- Keep generated ZIP and checksum files out of Git. The workflow packages `library.properties`, `keywords.txt`, `LICENSE`, `README.md`, `API.md`, `src`, and `examples` beneath a `ZS042MH` archive root.
 - A release is complete only after its workflow passes and both `ZS042MH-<version>.zip` and `ZS042MH-<version>.zip.sha256` appear on the GitHub release.

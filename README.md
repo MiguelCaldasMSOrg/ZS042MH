@@ -35,18 +35,22 @@ Include and initialize the library:
 ```cpp
 #include <ZS042MH.h>
 
-ZS042MH module;
+ZS042MH zs042mh;
 
 void setup() {
-  module.begin();
+  zs042mh.begin();
 }
 ```
 
-`begin()` initializes the injected I2C bus. To use a different bus or EEPROM address:
+The full constructor selects the I2C bus, RTC address, EEPROM address, and EEPROM capacity:
 
 ```cpp
-ZS042MH module(Wire, 0x68, 0x50);
+ZS042MH zs042mh(Wire1, 0x68, 0x50, 4096);
 ```
+
+The no-parameter constructor uses `Wire`, the Arduino core's global `TwoWire` object for the board's default I2C bus, with the default device addresses and EEPROM capacity. The full constructor accepts any board-provided `TwoWire` instance by reference; that bus object must remain alive for the lifetime of `zs042mh`. Calling `zs042mh.begin()` calls `begin()` on the selected bus.
+
+See [Construction and bus setup](API.md#construction-and-bus-setup) for alternate constructors. Pin selection and other board-specific I2C setup vary by Arduino core; when a core requires custom pins or settings, configure the bus as required by that core instead of relying on the library's parameterless `begin()` call.
 
 The examples are available under **File > Examples > ZS042MH**:
 
@@ -57,6 +61,8 @@ The examples are available under **File > Examples > ZS042MH**:
 - `EEPROMReadWrite` writes and reads one NUL-terminated message once at startup.
 
 ## API
+
+See [API reference](API.md) for complete signatures, parameters, side effects, return values, and error behavior. The tables below are a quick overview.
 
 ### Clock and calendar
 
@@ -160,7 +166,7 @@ git push origin v1.0.0
 
 The workflow rejects mismatched or non-semantic versions, runs strict Arduino lint without Library Manager checks, verifies every alarm pattern with the host test, compiles every example for the primary target, and attaches `ZS042MH-<version>.zip` plus `ZS042MH-<version>.zip.sha256` to the GitHub release. Re-running the workflow replaces those assets safely.
 
-Install the attached ZIP in Arduino IDE with **Sketch > Include Library > Add .ZIP Library**. The package contains only the library metadata, source, examples, license, and README under a `ZS042MH` root directory.
+Install the attached ZIP in Arduino IDE with **Sketch > Include Library > Add .ZIP Library**. The package contains only the library metadata, source, examples, license, README, and API reference under a `ZS042MH` root directory.
 
 ## License
 

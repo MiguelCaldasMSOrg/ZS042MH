@@ -29,6 +29,9 @@ bool isValidBcd(uint8_t value) {
 ZS042MH::ZS042MH(TwoWire &wire, uint8_t rtcAddress, uint8_t eepromAddress, uint16_t eepromSize) : _wire(wire), _rtcAddress(rtcAddress), _eepromAddress(eepromAddress), _eepromSize(eepromSize) {
 }
 
+ZS042MH::ZS042MH(uint8_t rtcAddress, uint8_t eepromAddress) : ZS042MH(Wire, rtcAddress, eepromAddress, DEFAULT_EEPROM_SIZE) {
+}
+
 void ZS042MH::begin() {
   _wire.begin();
 }

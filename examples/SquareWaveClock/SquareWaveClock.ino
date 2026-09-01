@@ -2,17 +2,17 @@
 
 const uint16_t CLOCK_RATE_HZ = 1;
 
-ZS042MH module;
+ZS042MH zs042mh;
 
 void setup() {
   Serial.begin(9600);
-  module.begin();
+  zs042mh.begin();
 
-  if (!module.rtcConnected()) {
+  if (!zs042mh.rtcConnected()) {
     Serial.println("DS3231 not found at 0x68");
     return;
   }
-  if (!module.setSquareWave(CLOCK_RATE_HZ)) {
+  if (!zs042mh.setSquareWave(CLOCK_RATE_HZ)) {
     Serial.println("Could not configure square-wave output");
     return;
   }

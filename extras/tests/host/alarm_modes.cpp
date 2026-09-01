@@ -31,53 +31,61 @@ void expectFirstTransmission(std::initializer_list<uint8_t> expected) {
   assert(Wire.transmissions[0].data == std::vector<uint8_t>(expected));
 }
 
-void expectAlarm1(ZS042MH &module, ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, std::initializer_list<uint8_t> expected) {
+void expectAlarm1(ZS042MH &zs042mh, ZS042MHAlarm1Mode mode, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, std::initializer_list<uint8_t> expected) {
   resetWire();
-  assert(module.setAlarm1(mode, day, hour, minute, second));
+  assert(zs042mh.setAlarm1(mode, day, hour, minute, second));
   expectFirstTransmission(expected);
   assert(Wire.registers[0x0E] == 0xA5);
   assert(Wire.registers[0x0F] == 0x8A);
 }
 
-void expectAlarm2(ZS042MH &module, ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute, std::initializer_list<uint8_t> expected) {
+void expectAlarm2(ZS042MH &zs042mh, ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute, std::initializer_list<uint8_t> expected) {
   resetWire();
-  assert(module.setAlarm2(mode, day, hour, minute));
+  assert(zs042mh.setAlarm2(mode, day, hour, minute));
   expectFirstTransmission(expected);
   assert(Wire.registers[0x0E] == 0xA6);
   assert(Wire.registers[0x0F] == 0x89);
 }
 
 int main() {
-  ZS042MH module(Wire);
-
-  expectAlarm1(module, ZS042MH_A1_EVERY_SECOND, 255, 255, 255, 255, {0x07, 0x80, 0x80, 0x80, 0x80});
-  expectAlarm1(module, ZS042MH_A1_MATCH_SECOND, 255, 255, 255, 45, {0x07, 0x45, 0x80, 0x80, 0x80});
-  expectAlarm1(module, ZS042MH_A1_MATCH_MINUTE_SECOND, 255, 255, 23, 45, {0x07, 0x45, 0x23, 0x80, 0x80});
-  expectAlarm1(module, ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND, 255, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x80});
-  expectAlarm1(module, ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND, 31, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x31});
-  expectAlarm1(module, ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND, 1, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x41});
-
-  expectAlarm2(module, ZS042MH_A2_EVERY_MINUTE, 255, 255, 255, {0x0B, 0x80, 0x80, 0x80});
-  expectAlarm2(module, ZS042MH_A2_MATCH_MINUTE, 255, 255, 23, {0x0B, 0x23, 0x80, 0x80});
-  expectAlarm2(module, ZS042MH_A2_MATCH_HOUR_MINUTE, 255, 14, 23, {0x0B, 0x23, 0x14, 0x80});
-  expectAlarm2(module, ZS042MH_A2_MATCH_DATE_HOUR_MINUTE, 31, 14, 23, {0x0B, 0x23, 0x14, 0x31});
-  expectAlarm2(module, ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 1, 14, 23, {0x0B, 0x23, 0x14, 0x41});
+  ZS042MH zs042mh(Wire);
 
   resetWire();
-  assert(!module.setAlarm1(ZS042MH_A1_MATCH_SECOND, 0, 0, 0, 60));
-  assert(!module.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 60, 0));
-  assert(!module.setAlarm1(ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND, 0, 24, 0, 0));
-  assert(!module.setAlarm1(ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND, 32, 0, 0, 0));
-  assert(!module.setAlarm1(ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND, 8, 0, 0, 0));
-  assert(!module.setAlarm1((ZS042MHAlarm1Mode)-1, 0, 0, 0, 0));
+  ZS042MH addressedRtcEeprom(0x69, 0x50);
+  assert(addressedRtcEeprom.rtcConnected());
+  assert(Wire.transmissions.back().address == 0x69);
+  assert(addressedRtcEeprom.eepromConnected());
+  assert(Wire.transmissions.back().address == 0x50);
+  assert(addressedRtcEeprom.eepromSize() == ZS042MH::DEFAULT_EEPROM_SIZE);
+
+  expectAlarm1(zs042mh, ZS042MH_A1_EVERY_SECOND, 255, 255, 255, 255, {0x07, 0x80, 0x80, 0x80, 0x80});
+  expectAlarm1(zs042mh, ZS042MH_A1_MATCH_SECOND, 255, 255, 255, 45, {0x07, 0x45, 0x80, 0x80, 0x80});
+  expectAlarm1(zs042mh, ZS042MH_A1_MATCH_MINUTE_SECOND, 255, 255, 23, 45, {0x07, 0x45, 0x23, 0x80, 0x80});
+  expectAlarm1(zs042mh, ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND, 255, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x80});
+  expectAlarm1(zs042mh, ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND, 31, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x31});
+  expectAlarm1(zs042mh, ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND, 1, 14, 23, 45, {0x07, 0x45, 0x23, 0x14, 0x41});
+
+  expectAlarm2(zs042mh, ZS042MH_A2_EVERY_MINUTE, 255, 255, 255, {0x0B, 0x80, 0x80, 0x80});
+  expectAlarm2(zs042mh, ZS042MH_A2_MATCH_MINUTE, 255, 255, 23, {0x0B, 0x23, 0x80, 0x80});
+  expectAlarm2(zs042mh, ZS042MH_A2_MATCH_HOUR_MINUTE, 255, 14, 23, {0x0B, 0x23, 0x14, 0x80});
+  expectAlarm2(zs042mh, ZS042MH_A2_MATCH_DATE_HOUR_MINUTE, 31, 14, 23, {0x0B, 0x23, 0x14, 0x31});
+  expectAlarm2(zs042mh, ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 1, 14, 23, {0x0B, 0x23, 0x14, 0x41});
+
+  resetWire();
+  assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_SECOND, 0, 0, 0, 60));
+  assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_MINUTE_SECOND, 0, 0, 60, 0));
+  assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_HOUR_MINUTE_SECOND, 0, 24, 0, 0));
+  assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_DATE_HOUR_MINUTE_SECOND, 32, 0, 0, 0));
+  assert(!zs042mh.setAlarm1(ZS042MH_A1_MATCH_WEEKDAY_HOUR_MINUTE_SECOND, 8, 0, 0, 0));
+  assert(!zs042mh.setAlarm1((ZS042MHAlarm1Mode)-1, 0, 0, 0, 0));
   assert(Wire.transmissions.empty());
 
   resetWire();
-  assert(!module.setAlarm2(ZS042MH_A2_MATCH_MINUTE, 0, 0, 60));
-  assert(!module.setAlarm2(ZS042MH_A2_MATCH_HOUR_MINUTE, 0, 24, 0));
-  assert(!module.setAlarm2(ZS042MH_A2_MATCH_DATE_HOUR_MINUTE, 32, 0, 0));
-  assert(!module.setAlarm2(ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 8, 0, 0));
-  assert(!module.setAlarm2((ZS042MHAlarm2Mode)-1, 0, 0, 0));
+  assert(!zs042mh.setAlarm2(ZS042MH_A2_MATCH_MINUTE, 0, 0, 60));
+  assert(!zs042mh.setAlarm2(ZS042MH_A2_MATCH_HOUR_MINUTE, 0, 24, 0));
+  assert(!zs042mh.setAlarm2(ZS042MH_A2_MATCH_DATE_HOUR_MINUTE, 32, 0, 0));
+  assert(!zs042mh.setAlarm2(ZS042MH_A2_MATCH_WEEKDAY_HOUR_MINUTE, 8, 0, 0));
+  assert(!zs042mh.setAlarm2((ZS042MHAlarm2Mode)-1, 0, 0, 0));
   assert(Wire.transmissions.empty());
 
   std::cout << "All 11 alarm patterns and validation paths passed" << std::endl;

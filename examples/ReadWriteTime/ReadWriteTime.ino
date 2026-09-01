@@ -1,6 +1,6 @@
 #include <ZS042MH.h>
 
-ZS042MH module;
+ZS042MH zs042mh;
 
 void printTwoDigits(uint8_t value) {
   if (value < 10) {
@@ -11,15 +11,15 @@ void printTwoDigits(uint8_t value) {
 
 void setup() {
   Serial.begin(9600);
-  module.begin();
+  zs042mh.begin();
 
-  if (!module.rtcConnected()) {
+  if (!zs042mh.rtcConnected()) {
     Serial.println("DS3231 not found at 0x68");
     return;
   }
 
   bool stopped;
-  if (!module.oscillatorStopped(stopped)) {
+  if (!zs042mh.oscillatorStopped(stopped)) {
     Serial.println("Could not read oscillator status");
     return;
   }
@@ -28,12 +28,12 @@ void setup() {
   }
 
   // Uncomment once to set the RTC, then comment it again and upload.
-  // module.setTime(2026, 1, 31, 12, 0, 0);
+  // zs042mh.setTime(2026, 1, 31, 12, 0, 0);
 }
 
 void loop() {
   ZS042MHDateTime now;
-  if (!module.getTime(now)) {
+  if (!zs042mh.getTime(now)) {
     Serial.println("RTC read failed");
     delay(1000);
     return;
@@ -51,7 +51,7 @@ void loop() {
   Serial.print(':');
   printTwoDigits(now.second);
   Serial.print("  ");
-  Serial.print(module.getTemperature());
+  Serial.print(zs042mh.getTemperature());
   Serial.println(" C");
   delay(1000);
 }

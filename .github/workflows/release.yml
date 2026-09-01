@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           package_root="dist/ZS042MH"
           mkdir -p "$package_root"
-          cp library.properties keywords.txt LICENSE README.md "$package_root/"
+          cp library.properties keywords.txt LICENSE README.md API.md "$package_root/"
           cp -R src examples "$package_root/"
           (
             cd dist
