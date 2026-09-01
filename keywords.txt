@@ -20,6 +20,7 @@ setAlarm1	KEYWORD2
 setAlarm2	KEYWORD2
 disableAlarm	KEYWORD2
 checkAndClearAlarms	KEYWORD2
+setAlarmInterruptMode	KEYWORD2
 setSquareWave	KEYWORD2
 eepromSize	KEYWORD2
 eepromWriteByte	KEYWORD2

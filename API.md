@@ -244,7 +244,15 @@ Sets `fired` to `0` before reading the status register. If the read succeeds, it
 
 Flags can be polled even without an interrupt wire and while `INT/SQW` is configured for square-wave output.
 
-## Square-wave output
+## INT/SQW output mode
+
+### `setAlarmInterruptMode()`
+
+```cpp
+bool setAlarmInterruptMode();
+```
+
+Configures `INT/SQW` for alarm interrupts. Existing alarm-enable, square-wave rate, and unrelated control bits are preserved. Returns `false` for an I2C failure.
 
 ### `setSquareWave()`
 
@@ -252,11 +260,11 @@ Flags can be polled even without an interrupt wire and while `INT/SQW` is config
 bool setSquareWave(uint16_t rate);
 ```
 
-- `rate`: `0`, `1`, `1024`, `4096`, or `8192`. Values are in hertz except `0`, which selects alarm interrupt mode rather than a zero-hertz clock.
+- `rate`: `1`, `1024`, `4096`, or `8192` hertz.
 
-Reads, modifies, and writes the DS3231 control register. A nonzero rate configures `INT/SQW` as a square-wave output at that frequency. `0` configures the pin for alarm interrupts. Existing alarm-enable and unrelated control bits are preserved. Returns `false` for an unsupported rate or an I2C failure. The implementation reads the control register before validating `rate`, so even an unsupported rate performs an I2C read but no write.
+Configures `INT/SQW` as a square-wave output at the requested frequency. Existing alarm-enable and unrelated control bits are preserved. Returns `false` without performing I2C for an unsupported rate, including `0`, or returns `false` for an I2C failure.
 
-The pin is open-drain and needs a suitable pull-up. Alarm flags continue to latch in square-wave mode, but alarms cannot drive the pin until interrupt mode is restored.
+The pin is open-drain and needs a suitable pull-up. Alarm flags continue to latch in square-wave mode, but alarms cannot drive the pin until interrupt mode is restored with `setAlarmInterruptMode()` or an alarm is configured with `setAlarm1()` or `setAlarm2()`.
 
 ## EEPROM
 

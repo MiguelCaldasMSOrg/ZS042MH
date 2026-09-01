@@ -88,6 +88,24 @@ int main() {
   assert(!zs042mh.setAlarm2((ZS042MHAlarm2Mode)-1, 0, 0, 0));
   assert(Wire.transmissions.empty());
 
-  std::cout << "All 11 alarm patterns and validation paths passed" << std::endl;
+  resetWire();
+  assert(!zs042mh.setSquareWave(0));
+  assert(!zs042mh.setSquareWave(2));
+  assert(Wire.transmissions.empty());
+
+  const uint16_t squareWaveRates[] = {1, 1024, 4096, 8192};
+  const uint8_t expectedRateBits[] = {0x00, 0x08, 0x10, 0x18};
+  for (size_t index = 0; index < sizeof(squareWaveRates) / sizeof(squareWaveRates[0]); index++) {
+    resetWire();
+    assert(zs042mh.setSquareWave(squareWaveRates[index]));
+    assert(Wire.registers[0x0E] == (uint8_t)(0xA0 | expectedRateBits[index]));
+  }
+
+  resetWire();
+  Wire.registers[0x0E] = 0xBB;
+  assert(zs042mh.setAlarmInterruptMode());
+  assert(Wire.registers[0x0E] == 0xBF);
+
+  std::cout << "All alarm patterns, output modes, and validation paths passed" << std::endl;
   return 0;
 }

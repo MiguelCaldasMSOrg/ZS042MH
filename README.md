@@ -88,7 +88,8 @@ A successful read confirms valid register encoding and I2C transport, not that t
 | `setAlarm2(mode, day, hour, minute)` | Configure any Alarm 2 match pattern, enable interrupt mode, and clear its old flag. |
 | `disableAlarm(1 or 2)` | Disable the selected alarm and clear its flag. |
 | `checkAndClearAlarms(fired)` | Return and clear asserted flags; test `ZS042MH::ALARM_1` and `ZS042MH::ALARM_2`. |
-| `setSquareWave(rate)` | Accept `0`, `1`, `1024`, `4096`, or `8192` Hz; `0` selects alarm interrupt mode. |
+| `setAlarmInterruptMode()` | Configure `INT/SQW` for alarm interrupts without changing alarm-enable bits. |
+| `setSquareWave(rate)` | Output `1`, `1024`, `4096`, or `8192` Hz; unsupported rates fail without performing I2C. |
 
 Alarm modes are:
 
@@ -110,7 +111,7 @@ All DS3231 alarm match patterns are exposed. For weekday modes, `day` uses the s
 
 The DS3231 `INT/SQW` pin is active-low and open-drain. It remains low while an enabled alarm flag is set. Date alarms repeat monthly, and Alarm 2 has one-minute resolution. Alarm flags are set on a match even when the pin is not connected to an interrupt input or is providing a square wave, so `checkAndClearAlarms()` can be polled in either case.
 
-Switching to a nonzero square wave repurposes `INT/SQW`, so alarms cannot signal through the pin in that mode. Existing alarm-enable bits remain set, but they can drive the pin only when interrupt mode is selected. Square-wave clock rates are `1`, `1024`, `4096`, and `8192` Hz. The output is open-drain and requires a suitable pull-up; verify the module's onboard pull-up voltage before connecting it to another device.
+Switching to a square wave repurposes `INT/SQW`, so alarms cannot signal through the pin in that mode. Existing alarm-enable bits remain set, but they can drive the pin only after `setAlarmInterruptMode()`, `setAlarm1()`, or `setAlarm2()` selects interrupt mode. Square-wave clock rates are `1`, `1024`, `4096`, and `8192` Hz. The output is open-drain and requires a suitable pull-up; verify the module's onboard pull-up voltage before connecting it to another device.
 
 ### EEPROM
 

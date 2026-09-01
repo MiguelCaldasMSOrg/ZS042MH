@@ -58,6 +58,7 @@ class ZS042MH {
   bool setAlarm2(ZS042MHAlarm2Mode mode, uint8_t day, uint8_t hour, uint8_t minute);
   bool disableAlarm(uint8_t alarmNumber);
   bool checkAndClearAlarms(uint8_t &fired);
+  bool setAlarmInterruptMode();
   bool setSquareWave(uint16_t rate);
 
   uint16_t eepromSize() const;

@@ -294,32 +294,29 @@ bool ZS042MH::checkAndClearAlarms(uint8_t &fired) {
   return true;
 }
 
+bool ZS042MH::setAlarmInterruptMode() {
+  return rtcUpdateRegister(REG_CONTROL, 0, CONTROL_INTCN);
+}
+
 bool ZS042MH::setSquareWave(uint16_t rate) {
-  uint8_t control;
-  if (!rtcRead(REG_CONTROL, &control, 1)) {
-    return false;
-  }
-  control &= ~(CONTROL_RS1 | CONTROL_RS2);
+  uint8_t rateBits;
   switch (rate) {
-    case 0:
-      control |= CONTROL_INTCN;
-      break;
     case 1:
-      control &= ~CONTROL_INTCN;
+      rateBits = 0;
       break;
     case 1024:
-      control = (control | CONTROL_RS1) & ~CONTROL_INTCN;
+      rateBits = CONTROL_RS1;
       break;
     case 4096:
-      control = (control | CONTROL_RS2) & ~CONTROL_INTCN;
+      rateBits = CONTROL_RS2;
       break;
     case 8192:
-      control = (control | CONTROL_RS1 | CONTROL_RS2) & ~CONTROL_INTCN;
+      rateBits = CONTROL_RS1 | CONTROL_RS2;
       break;
     default:
       return false;
   }
-  return rtcSetRegister(REG_CONTROL, control);
+  return rtcUpdateRegister(REG_CONTROL, CONTROL_INTCN | CONTROL_RS1 | CONTROL_RS2, rateBits);
 }
 
 uint16_t ZS042MH::eepromSize() const {
